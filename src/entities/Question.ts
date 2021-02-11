@@ -1,25 +1,25 @@
-import { Entity, ManyToOne, PrimaryKey, Property} from "@mikro-orm/core";
-import { Field, Int, ObjectType } from "type-graphql";
-import {Collection} from "./Collection"
+import {Column, Entity, ManyToOne, PrimaryGeneratedColumn} from "typeorm"
+import { Field, ObjectType } from "type-graphql"
+import { Collection } from "./Collection";
+import { type } from "os";
 
 @ObjectType()
 @Entity()
 export class Question {
 
-  @Field(()=>Int)
-  @PrimaryKey()
+  @Field()
+  @PrimaryGeneratedColumn()
   id!: number;
 
-  @Field()
-  @ManyToOne()
+  @Field(()=>Collection)
+  @ManyToOne(() => Collection, collection => collection.questions)
   parent: Collection;
 
   @Field()
-  @Property({type: 'text'})
+  @Column({type: 'text'})
   question!: string;
 
   @Field()
-  @Property({type: 'text'})
+  @Column({type: 'text'})
   answer!: string;
-
 }

@@ -9,44 +9,35 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Collection = void 0;
+exports.Question = void 0;
 const typeorm_1 = require("typeorm");
 const type_graphql_1 = require("type-graphql");
-const Question_1 = require("./Question");
-let Collection = class Collection {
+const Collection_1 = require("./Collection");
+let Question = class Question {
 };
 __decorate([
     type_graphql_1.Field(),
     typeorm_1.PrimaryGeneratedColumn(),
     __metadata("design:type", Number)
-], Collection.prototype, "id", void 0);
+], Question.prototype, "id", void 0);
 __decorate([
-    typeorm_1.OneToMany(() => Question_1.Question, question => question.parent),
-    __metadata("design:type", Array)
-], Collection.prototype, "questions", void 0);
-__decorate([
-    type_graphql_1.Field(),
-    typeorm_1.Column(),
-    __metadata("design:type", String)
-], Collection.prototype, "title", void 0);
+    type_graphql_1.Field(() => Collection_1.Collection),
+    typeorm_1.ManyToOne(() => Collection_1.Collection, collection => collection.questions),
+    __metadata("design:type", Collection_1.Collection)
+], Question.prototype, "parent", void 0);
 __decorate([
     type_graphql_1.Field(),
-    typeorm_1.Column(),
+    typeorm_1.Column({ type: 'text' }),
     __metadata("design:type", String)
-], Collection.prototype, "description", void 0);
+], Question.prototype, "question", void 0);
 __decorate([
-    type_graphql_1.Field(() => String),
-    typeorm_1.CreateDateColumn(),
-    __metadata("design:type", Date)
-], Collection.prototype, "createdAt", void 0);
-__decorate([
-    type_graphql_1.Field(() => String),
-    typeorm_1.UpdateDateColumn(),
-    __metadata("design:type", Date)
-], Collection.prototype, "updatedAt", void 0);
-Collection = __decorate([
+    type_graphql_1.Field(),
+    typeorm_1.Column({ type: 'text' }),
+    __metadata("design:type", String)
+], Question.prototype, "answer", void 0);
+Question = __decorate([
     type_graphql_1.ObjectType(),
     typeorm_1.Entity()
-], Collection);
-exports.Collection = Collection;
-//# sourceMappingURL=Collection.js.map
+], Question);
+exports.Question = Question;
+//# sourceMappingURL=Question.js.map

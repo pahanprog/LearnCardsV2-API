@@ -13,9 +13,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
-const core_1 = require("@mikro-orm/core");
 const constants_1 = require("./constants");
-const mikro_orm_config_1 = __importDefault(require("./mikro-orm.config"));
+const path_1 = __importDefault(require("path"));
 const express_1 = __importDefault(require("express"));
 const apollo_server_express_1 = require("apollo-server-express");
 const type_graphql_1 = require("type-graphql");
@@ -25,9 +24,23 @@ const redis_1 = __importDefault(require("redis"));
 const express_session_1 = __importDefault(require("express-session"));
 const connect_redis_1 = __importDefault(require("connect-redis"));
 const cors_1 = __importDefault(require("cors"));
+const Collection_1 = require("./entities/Collection");
+const Question_1 = require("./entities/Question");
+const typeorm_1 = require("typeorm");
+const User_1 = require("./entities/User");
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
-    const orm = yield core_1.MikroORM.init(mikro_orm_config_1.default);
-    yield orm.getMigrator().up();
+    const conn = yield typeorm_1.createConnection({
+        type: "postgres",
+        host: "localhost",
+        port: 5050,
+        username: "postgres",
+        password: "1234",
+        database: "LearnCards",
+        entities: [User_1.User, Collection_1.Collection, Question_1.Question],
+        synchronize: true,
+        migrations: [path_1.default.join(__dirname, "./migrations/*")],
+        logging: false
+    });
     const app = express_1.default();
     const RedisStore = connect_redis_1.default(express_session_1.default);
     const redisClient = redis_1.default.createClient();
@@ -55,13 +68,12 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         schema: yield type_graphql_1.buildSchema({
             resolvers: [collection_1.CollectionResolver, user_1.UserResolver],
             validate: false,
-        }),
-        context: ({ req, res }) => ({ em: orm.em, req, res }),
+        })
     });
     apolloServer.applyMiddleware({ app, cors: false });
-    app.listen(4000, () => {
-        console.log("server started on localhost:4000");
-    });
+    app.listen(4000, () => __awaiter(void 0, void 0, void 0, function* () {
+        console.log("app running at 4000");
+    }));
 });
 main().catch((err) => {
     console.error(err);

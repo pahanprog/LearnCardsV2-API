@@ -1,0 +1,19 @@
+{
+    "type": "postgresql",
+    "host": "localhost",
+    "port": 5050,
+    "username": "postgres",
+    "password": "1234",
+    "database": "LearnCards",
+    "synchronize": true,
+    "logging": false,
+    "entities": [
+       "src/entity/**/*.ts"
+    ],
+    "migrations": [
+       "src/migration/**/*.ts"
+    ],
+    "subscribers": [
+       "src/subscriber/**/*.ts"
+    ]
+ }
