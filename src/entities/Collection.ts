@@ -1,5 +1,6 @@
-import { Entity, PrimaryKey, Property} from "@mikro-orm/core";
+import { Entity, OneToMany, PrimaryKey, Property} from "@mikro-orm/core";
 import { Field, Int, ObjectType } from "type-graphql";
+import { Question } from "./Question";
 
 @ObjectType()
 @Entity()
@@ -8,6 +9,9 @@ export class Collection {
   @Field(()=>Int)
   @PrimaryKey()
   id!: number;
+
+  @OneToMany(()=>Question, question => question.parent)
+  questions: Question[];
 
   @Field(() => String)
   @Property({type: 'date'})

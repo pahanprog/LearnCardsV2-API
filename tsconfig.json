@@ -26,7 +26,8 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "resolveJsonModule": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "strict": false
   },
   "exclude": [
     "node_modules"
