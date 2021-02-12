@@ -21,6 +21,7 @@ __decorate([
     __metadata("design:type", Number)
 ], Collection.prototype, "id", void 0);
 __decorate([
+    type_graphql_1.Field(() => [Question_1.Question]),
     typeorm_1.OneToMany(() => Question_1.Question, question => question.parent),
     __metadata("design:type", Array)
 ], Collection.prototype, "questions", void 0);

@@ -24,9 +24,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CollectionResolver = void 0;
 const Collection_1 = require("../entities/Collection");
 const type_graphql_1 = require("type-graphql");
+const typeorm_1 = require("typeorm");
 let CollectionResolver = class CollectionResolver {
-    collections({ em }) {
-        return em.find(Collection_1.Collection, {});
+    collections() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return typeorm_1.getConnection().manager.find(Collection_1.Collection, { relations: ["questions"] });
+        });
     }
     collection(id, { em }) {
         return em.findOne(Collection_1.Collection, { id });
@@ -68,9 +71,8 @@ let CollectionResolver = class CollectionResolver {
 };
 __decorate([
     type_graphql_1.Query(() => [Collection_1.Collection]),
-    __param(0, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], CollectionResolver.prototype, "collections", null);
 __decorate([

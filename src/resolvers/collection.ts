@@ -1,15 +1,14 @@
 import { Collection } from "../entities/Collection";
 import { Arg, Ctx, Mutation, Query, Resolver } from "type-graphql";
+import {getConnection} from "typeorm"
 import { MyContext } from "src/types";
 
 @Resolver()
 export class CollectionResolver {
     @Query(()=> [Collection])
     
-    collections(
-        @Ctx() {em}: MyContext
-    ): Promise<Collection[]> {
-        return em.find(Collection,  {});
+    async collections(): Promise<Collection[]> {
+        return getConnection().manager.find(Collection, {relations: ["questions"]});
     }
 
     @Query(()=> Collection, {nullable: true})

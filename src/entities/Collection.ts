@@ -11,6 +11,7 @@ export class Collection {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Field(()=>[Question])
   @OneToMany(() => Question, question=>question.parent)
   questions: Question[];
 
