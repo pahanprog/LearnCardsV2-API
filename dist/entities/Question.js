@@ -22,7 +22,7 @@ __decorate([
 ], Question.prototype, "id", void 0);
 __decorate([
     type_graphql_1.Field(() => Collection_1.Collection),
-    typeorm_1.ManyToOne(() => Collection_1.Collection, collection => collection.questions),
+    typeorm_1.ManyToOne(() => Collection_1.Collection, collection => collection.questions, { onDelete: "CASCADE" }),
     __metadata("design:type", Collection_1.Collection)
 ], Question.prototype, "parent", void 0);
 __decorate([

@@ -12,7 +12,7 @@ export class Question {
   id!: number;
 
   @Field(()=>Collection)
-  @ManyToOne(() => Collection, collection => collection.questions)
+  @ManyToOne(() => Collection, collection => collection.questions, {onDelete: "CASCADE"})
   parent: Collection;
 
   @Field()

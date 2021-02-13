@@ -15,9 +15,8 @@ export class CollectionResolver {
     
     collection(
         @Arg("id") id: number,
-        @Ctx() {em}: MyContext
-    ): Promise<Collection | null> {
-        return em.findOne(Collection,  {id});
+    ): Promise<Collection | undefined> {
+        return getConnection().manager.findOne(Collection, {relations: ["questions"], where: {id: id}})
     }
 
     @Mutation(()=> Collection)
@@ -25,10 +24,11 @@ export class CollectionResolver {
     async  createCollection(
         @Arg("title") title: string,
         @Arg("description") description: string,
-        @Ctx() {em}: MyContext
     ): Promise<Collection> {
-        const collecion =  em.create(Collection, {title, description});
-        await em.persistAndFlush(collecion);
+        const collecion =  new Collection();
+        collecion.title = title;
+        collecion.description = description;
+        await getConnection().manager.save(collecion);
         return collecion;
     }
 
@@ -36,11 +36,10 @@ export class CollectionResolver {
     
     async  updateCollection(
         @Arg("id") id: number,
-        @Arg("title") title: string,
-        @Arg("description") description: string,
-        @Ctx() {em}: MyContext
+        @Arg("title", {nullable: true}) title: string,
+        @Arg("description", {nullable: true}) description: string,
     ): Promise<Collection | null> {
-        const collecion = await em.findOne(Collection, {id});
+        const collecion = await getConnection().manager.findOne(Collection, {relations: ["questions"], where: {id: id}});
         if (!collecion) {
             return null;
         }
@@ -50,7 +49,7 @@ export class CollectionResolver {
         if (typeof description !== "undefined") {
             collecion.description=description;
         }
-        await em.persistAndFlush(collecion);
+        await getConnection().manager.save(collecion);
         return collecion;
     }
 
@@ -58,11 +57,11 @@ export class CollectionResolver {
     
     async  deleteCollection(
         @Arg("id") id: number,
-        @Ctx() {em}: MyContext
     ): Promise<Boolean> {
         try {
-        await em.nativeDelete(Collection, {id})
-        } catch {
+            const collection = await getConnection().manager.findOne(Collection, {where: {id: id}});
+            await getConnection().manager.remove(collection)
+        } catch (e) {
             return false;
         }
         return true;

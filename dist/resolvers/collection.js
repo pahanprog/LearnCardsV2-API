@@ -31,19 +31,21 @@ let CollectionResolver = class CollectionResolver {
             return typeorm_1.getConnection().manager.find(Collection_1.Collection, { relations: ["questions"] });
         });
     }
-    collection(id, { em }) {
-        return em.findOne(Collection_1.Collection, { id });
+    collection(id) {
+        return typeorm_1.getConnection().manager.findOne(Collection_1.Collection, { relations: ["questions"], where: { id: id } });
     }
-    createCollection(title, description, { em }) {
+    createCollection(title, description) {
         return __awaiter(this, void 0, void 0, function* () {
-            const collecion = em.create(Collection_1.Collection, { title, description });
-            yield em.persistAndFlush(collecion);
+            const collecion = new Collection_1.Collection();
+            collecion.title = title;
+            collecion.description = description;
+            yield typeorm_1.getConnection().manager.save(collecion);
             return collecion;
         });
     }
-    updateCollection(id, title, description, { em }) {
+    updateCollection(id, title, description) {
         return __awaiter(this, void 0, void 0, function* () {
-            const collecion = yield em.findOne(Collection_1.Collection, { id });
+            const collecion = yield typeorm_1.getConnection().manager.findOne(Collection_1.Collection, { relations: ["questions"], where: { id: id } });
             if (!collecion) {
                 return null;
             }
@@ -53,16 +55,17 @@ let CollectionResolver = class CollectionResolver {
             if (typeof description !== "undefined") {
                 collecion.description = description;
             }
-            yield em.persistAndFlush(collecion);
+            yield typeorm_1.getConnection().manager.save(collecion);
             return collecion;
         });
     }
-    deleteCollection(id, { em }) {
+    deleteCollection(id) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                yield em.nativeDelete(Collection_1.Collection, { id });
+                const collection = yield typeorm_1.getConnection().manager.findOne(Collection_1.Collection, { where: { id: id } });
+                yield typeorm_1.getConnection().manager.remove(collection);
             }
-            catch (_a) {
+            catch (e) {
                 return false;
             }
             return true;
@@ -78,36 +81,32 @@ __decorate([
 __decorate([
     type_graphql_1.Query(() => Collection_1.Collection, { nullable: true }),
     __param(0, type_graphql_1.Arg("id")),
-    __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], CollectionResolver.prototype, "collection", null);
 __decorate([
     type_graphql_1.Mutation(() => Collection_1.Collection),
     __param(0, type_graphql_1.Arg("title")),
     __param(1, type_graphql_1.Arg("description")),
-    __param(2, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], CollectionResolver.prototype, "createCollection", null);
 __decorate([
     type_graphql_1.Mutation(() => Collection_1.Collection, { nullable: true }),
     __param(0, type_graphql_1.Arg("id")),
-    __param(1, type_graphql_1.Arg("title")),
-    __param(2, type_graphql_1.Arg("description")),
-    __param(3, type_graphql_1.Ctx()),
+    __param(1, type_graphql_1.Arg("title", { nullable: true })),
+    __param(2, type_graphql_1.Arg("description", { nullable: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, String, String, Object]),
+    __metadata("design:paramtypes", [Number, String, String]),
     __metadata("design:returntype", Promise)
 ], CollectionResolver.prototype, "updateCollection", null);
 __decorate([
     type_graphql_1.Mutation(() => Boolean),
     __param(0, type_graphql_1.Arg("id")),
-    __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], CollectionResolver.prototype, "deleteCollection", null);
 CollectionResolver = __decorate([
