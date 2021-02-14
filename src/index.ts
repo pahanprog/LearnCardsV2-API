@@ -26,7 +26,7 @@ const main = async ()  => {
         entities: [User, Collection, Question],
         synchronize: true,
         migrations: [path.join(__dirname, "./migrations/*")],
-        logging: false
+        logging: true
     })
 
     const app = express();
@@ -60,7 +60,11 @@ const main = async ()  => {
         schema: await buildSchema({
             resolvers: [CollectionResolver,UserResolver],
             validate: false,
-        })
+        }),
+        context: ({ req, res }) => ({
+            req,
+            res,
+        }),
     });
 
     apolloServer.applyMiddleware({app, cors: false});

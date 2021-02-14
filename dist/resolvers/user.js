@@ -28,6 +28,7 @@ exports.UserResolver = void 0;
 const User_1 = require("../entities/User");
 const type_graphql_1 = require("type-graphql");
 const argon2_1 = __importDefault(require("argon2"));
+const typeorm_1 = require("typeorm");
 let UsernamePasswordInput = class UsernamePasswordInput {
 };
 __decorate([
@@ -68,16 +69,16 @@ UserResponse = __decorate([
     type_graphql_1.ObjectType()
 ], UserResponse);
 let UserResolver = class UserResolver {
-    me({ req, em }) {
+    me({ req }) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!req.session.userId) {
                 return null;
             }
-            const user = yield em.findOne(User_1.User, { id: req.session.userId });
+            const user = yield typeorm_1.getConnection().manager.findOne(User_1.User, { where: { id: req.session.userId } });
             return user;
         });
     }
-    register(options, { em, req }) {
+    register(options, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
             if (options.username.length <= 5) {
                 return {
@@ -98,13 +99,13 @@ let UserResolver = class UserResolver {
             const hashedPassword = yield argon2_1.default.hash(options.password);
             let user;
             try {
-                const result = yield em.createQueryBuilder(User_1.User).getKnexQuery().insert({
+                const result = yield typeorm_1.getConnection().createQueryBuilder().insert().into(User_1.User).values({
                     username: options.username,
-                    password: hashedPassword,
-                    created_at: new Date(),
-                    updated_at: new Date()
-                }).returning("*");
-                user = result[0];
+                    password: hashedPassword
+                })
+                    .returning("*")
+                    .execute();
+                user = result.raw[0];
             }
             catch (err) {
                 if (err.code === '23505') {
@@ -125,9 +126,9 @@ let UserResolver = class UserResolver {
             };
         });
     }
-    login(options, { em, req }) {
+    login(options, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const user = yield em.findOne(User_1.User, { username: options.username });
+            const user = yield typeorm_1.getConnection().manager.findOne(User_1.User, { where: { username: options.username } });
             if (!user) {
                 return {
                     errors: [{
@@ -149,6 +150,20 @@ let UserResolver = class UserResolver {
             return {
                 user
             };
+        });
+    }
+    logout({ req, res }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log(req.session.userId);
+            return new Promise((resolve) => req.session.destroy((err) => {
+                res.clearCookie("qid");
+                if (err) {
+                    console.log(err);
+                    resolve(false);
+                    return;
+                }
+                resolve(true);
+            }));
         });
     }
 };
@@ -175,6 +190,13 @@ __decorate([
     __metadata("design:paramtypes", [UsernamePasswordInput, Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "login", null);
+__decorate([
+    type_graphql_1.Mutation(() => Boolean),
+    __param(0, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "logout", null);
 UserResolver = __decorate([
     type_graphql_1.Resolver()
 ], UserResolver);

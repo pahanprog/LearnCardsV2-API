@@ -13,7 +13,7 @@ exports.Question = void 0;
 const typeorm_1 = require("typeorm");
 const type_graphql_1 = require("type-graphql");
 const Collection_1 = require("./Collection");
-let Question = class Question {
+let Question = class Question extends typeorm_1.BaseEntity {
 };
 __decorate([
     type_graphql_1.Field(),
@@ -21,7 +21,6 @@ __decorate([
     __metadata("design:type", Number)
 ], Question.prototype, "id", void 0);
 __decorate([
-    type_graphql_1.Field(() => Collection_1.Collection),
     typeorm_1.ManyToOne(() => Collection_1.Collection, collection => collection.questions, { onDelete: "CASCADE" }),
     __metadata("design:type", Collection_1.Collection)
 ], Question.prototype, "parent", void 0);

@@ -25,22 +25,35 @@ exports.CollectionResolver = void 0;
 const Collection_1 = require("../entities/Collection");
 const type_graphql_1 = require("type-graphql");
 const typeorm_1 = require("typeorm");
+const isAuth_1 = require("../middleware/isAuth");
+let CollectionInput = class CollectionInput {
+};
+__decorate([
+    type_graphql_1.Field(),
+    __metadata("design:type", String)
+], CollectionInput.prototype, "title", void 0);
+__decorate([
+    type_graphql_1.Field(),
+    __metadata("design:type", String)
+], CollectionInput.prototype, "description", void 0);
+CollectionInput = __decorate([
+    type_graphql_1.InputType()
+], CollectionInput);
 let CollectionResolver = class CollectionResolver {
-    collections() {
+    collections({ req }) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!req.session.userId) {
+                return null;
+            }
             return typeorm_1.getConnection().manager.find(Collection_1.Collection, { relations: ["questions"] });
         });
     }
     collection(id) {
         return typeorm_1.getConnection().manager.findOne(Collection_1.Collection, { relations: ["questions"], where: { id: id } });
     }
-    createCollection(title, description) {
+    createCollection(input, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const collecion = new Collection_1.Collection();
-            collecion.title = title;
-            collecion.description = description;
-            yield typeorm_1.getConnection().manager.save(collecion);
-            return collecion;
+            return Collection_1.Collection.create(Object.assign(Object.assign({}, input), { creatorId: req.session.userId })).save();
         });
     }
     updateCollection(id, title, description) {
@@ -73,9 +86,10 @@ let CollectionResolver = class CollectionResolver {
     }
 };
 __decorate([
-    type_graphql_1.Query(() => [Collection_1.Collection]),
+    type_graphql_1.Query(() => [Collection_1.Collection], { nullable: true }),
+    __param(0, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], CollectionResolver.prototype, "collections", null);
 __decorate([
@@ -87,10 +101,11 @@ __decorate([
 ], CollectionResolver.prototype, "collection", null);
 __decorate([
     type_graphql_1.Mutation(() => Collection_1.Collection),
-    __param(0, type_graphql_1.Arg("title")),
-    __param(1, type_graphql_1.Arg("description")),
+    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
+    __param(0, type_graphql_1.Arg("input")),
+    __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [CollectionInput, Object]),
     __metadata("design:returntype", Promise)
 ], CollectionResolver.prototype, "createCollection", null);
 __decorate([

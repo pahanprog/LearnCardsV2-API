@@ -13,7 +13,8 @@ exports.Collection = void 0;
 const typeorm_1 = require("typeorm");
 const type_graphql_1 = require("type-graphql");
 const Question_1 = require("./Question");
-let Collection = class Collection {
+const User_1 = require("./User");
+let Collection = class Collection extends typeorm_1.BaseEntity {
 };
 __decorate([
     type_graphql_1.Field(),
@@ -25,6 +26,15 @@ __decorate([
     typeorm_1.OneToMany(() => Question_1.Question, question => question.parent),
     __metadata("design:type", Array)
 ], Collection.prototype, "questions", void 0);
+__decorate([
+    type_graphql_1.Field(),
+    typeorm_1.Column(),
+    __metadata("design:type", Number)
+], Collection.prototype, "creatorId", void 0);
+__decorate([
+    typeorm_1.ManyToOne(() => User_1.User, user => user.id),
+    __metadata("design:type", User_1.User)
+], Collection.prototype, "creator", void 0);
 __decorate([
     type_graphql_1.Field(),
     typeorm_1.Column(),

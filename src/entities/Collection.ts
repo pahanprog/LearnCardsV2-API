@@ -1,11 +1,12 @@
-import {Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn} from "typeorm"
+import {BaseEntity, Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn} from "typeorm"
 import { Field, ObjectType } from "type-graphql"
 import { type } from "os";
 import { Question } from "./Question";
+import { User } from "./User";
 
 @ObjectType()
 @Entity()
-export class Collection {
+export class Collection extends BaseEntity {
 
   @Field()
   @PrimaryGeneratedColumn()
@@ -14,6 +15,13 @@ export class Collection {
   @Field(()=>[Question])
   @OneToMany(() => Question, question=>question.parent)
   questions: Question[];
+
+  @Field()
+  @Column()
+  creatorId: number;
+
+  @ManyToOne(()=>User, user=>user.id)
+  creator: User;
 
   @Field()
   @Column()

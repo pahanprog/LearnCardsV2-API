@@ -1,8 +1,8 @@
 import { User } from "../entities/User";
-import { Arg, Ctx, Field, InputType, Int, Mutation, ObjectType, Query, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import { MyContext } from "src/types";
 import argon2 from "argon2";
-import {EntityManager} from "@mikro-orm/postgresql"
+import { getConnection } from "typeorm";
 
 @InputType()
 class UsernamePasswordInput{
@@ -39,20 +39,20 @@ export class UserResolver {
 
     @Query(()=>User,{nullable: true})
     async me(
-        @Ctx() {req, em}: MyContext
+        @Ctx() {req}: MyContext
     ) {
         if (!req.session!.userId) {
             return  null;
         }
 
-        const user  = await em.findOne(User,  {id: req.session!.userId});
+        const user  = await getConnection().manager.findOne(User, {where: {id: req.session.userId}});
         return user;
     }
     
    @Mutation(()=>UserResponse)
    async register (
        @Arg('options') options: UsernamePasswordInput,
-       @Ctx() {em, req}: MyContext
+       @Ctx() {req}: MyContext
    ) : Promise<UserResponse> {
 
        if (options.username.length <= 5) {
@@ -76,13 +76,15 @@ export class UserResolver {
        const hashedPassword = await argon2.hash(options.password);
        let user;
        try{
-            const result = await (em as EntityManager).createQueryBuilder(User).getKnexQuery().insert({
-                username: options.username, 
-                password: hashedPassword,
-                created_at: new Date(),
-                updated_at: new Date()
-            }).returning("*");
-            user = result[0];
+           const result = await getConnection().createQueryBuilder().insert().into(User).values(
+               {
+                   username: options.username,
+                   password: hashedPassword
+               }
+           )
+           .returning("*")
+           .execute();
+           user = result.raw[0];
        } catch(err){
            if (err.code === '23505'){
                //duplicate username
@@ -107,9 +109,9 @@ export class UserResolver {
    @Mutation(()=>UserResponse)
    async login (
        @Arg('options') options: UsernamePasswordInput,
-       @Ctx() {em, req}: MyContext
+       @Ctx() {req}: MyContext
    ) : Promise<UserResponse> {
-       const user = await em.findOne(User,{username: options.username});
+       const user = await getConnection().manager.findOne(User, {where: {username: options.username}});
        if (!user) {
            return {
                errors: [{
@@ -133,5 +135,22 @@ export class UserResolver {
        return {
            user
        }
+   }
+
+   @Mutation(()=>Boolean)
+   async logout (@Ctx() {req,res}: MyContext) {
+       console.log(req.session.userId)
+       return new Promise((resolve)=>
+       req.session.destroy((err)=> {
+           res.clearCookie("qid");
+           if (err) {
+               console.log(err);
+               resolve(false);
+               return;
+           }
+
+           resolve(true);
+       })
+       )
    }
 }

@@ -1,13 +1,30 @@
 import { Collection } from "../entities/Collection";
-import { Arg, Ctx, Mutation, Query, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, InputType, Mutation, Query, Resolver, UseMiddleware } from "type-graphql";
 import {getConnection} from "typeorm"
-import { MyContext } from "src/types";
+import { MyContext } from "../types";
+import { User } from "../entities/User";
+import { isAuth } from "../middleware/isAuth";
+
+@InputType()
+class CollectionInput {
+    @Field()
+    title: string;
+
+    @Field()
+    description: string;
+}
+
 
 @Resolver()
 export class CollectionResolver {
-    @Query(()=> [Collection])
+    @Query(()=> [Collection], {nullable: true})
     
-    async collections(): Promise<Collection[]> {
+    async collections(
+        @Ctx() {req}: MyContext
+    ): Promise<Collection[] | null> {
+        if (!req.session!.userId) {
+            return null;
+        }
         return getConnection().manager.find(Collection, {relations: ["questions"]});
     }
 
@@ -20,16 +37,15 @@ export class CollectionResolver {
     }
 
     @Mutation(()=> Collection)
-    
+    @UseMiddleware(isAuth)
     async  createCollection(
-        @Arg("title") title: string,
-        @Arg("description") description: string,
+        @Arg("input") input: CollectionInput,
+        @Ctx() {req}: MyContext
     ): Promise<Collection> {
-        const collecion =  new Collection();
-        collecion.title = title;
-        collecion.description = description;
-        await getConnection().manager.save(collecion);
-        return collecion;
+        return Collection.create({
+            ...input,
+            creatorId: req.session!.userId
+        }).save();
     }
 
     @Mutation(()=> Collection, {nullable: true})
