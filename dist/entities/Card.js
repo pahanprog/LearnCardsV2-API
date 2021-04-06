@@ -9,34 +9,46 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Question = void 0;
+exports.Card = void 0;
 const typeorm_1 = require("typeorm");
 const type_graphql_1 = require("type-graphql");
-const Collection_1 = require("./Collection");
-let Question = class Question extends typeorm_1.BaseEntity {
+const Deck_1 = require("./Deck");
+let Card = class Card extends typeorm_1.BaseEntity {
 };
 __decorate([
     type_graphql_1.Field(),
     typeorm_1.PrimaryGeneratedColumn(),
     __metadata("design:type", Number)
-], Question.prototype, "id", void 0);
-__decorate([
-    typeorm_1.ManyToOne(() => Collection_1.Collection, collection => collection.questions, { onDelete: "CASCADE" }),
-    __metadata("design:type", Collection_1.Collection)
-], Question.prototype, "parent", void 0);
+], Card.prototype, "id", void 0);
 __decorate([
     type_graphql_1.Field(),
-    typeorm_1.Column({ type: 'text' }),
-    __metadata("design:type", String)
-], Question.prototype, "question", void 0);
+    typeorm_1.Column(),
+    __metadata("design:type", Number)
+], Card.prototype, "number", void 0);
 __decorate([
     type_graphql_1.Field(),
-    typeorm_1.Column({ type: 'text' }),
+    typeorm_1.Column(),
+    __metadata("design:type", Number)
+], Card.prototype, "parentId", void 0);
+__decorate([
+    typeorm_1.ManyToOne(() => Deck_1.Deck, (deck) => deck.cards, {
+        onDelete: "CASCADE",
+    }),
+    __metadata("design:type", Deck_1.Deck)
+], Card.prototype, "parent", void 0);
+__decorate([
+    type_graphql_1.Field(),
+    typeorm_1.Column({ type: "text" }),
     __metadata("design:type", String)
-], Question.prototype, "answer", void 0);
-Question = __decorate([
+], Card.prototype, "question", void 0);
+__decorate([
+    type_graphql_1.Field(),
+    typeorm_1.Column({ type: "text" }),
+    __metadata("design:type", String)
+], Card.prototype, "answer", void 0);
+Card = __decorate([
     type_graphql_1.ObjectType(),
     typeorm_1.Entity()
-], Question);
-exports.Question = Question;
-//# sourceMappingURL=Question.js.map
+], Card);
+exports.Card = Card;
+//# sourceMappingURL=Card.js.map

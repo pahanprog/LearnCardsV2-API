@@ -24,10 +24,6 @@
     "typescript": "^4.1.3"
   },
   "dependencies": {
-    "@mikro-orm/cli": "^4.1.0",
-    "@mikro-orm/core": "^4.1.0",
-    "@mikro-orm/migrations": "^4.1.0",
-    "@mikro-orm/postgresql": "^4.1.0",
     "apollo-server-express": "^2.18.2",
     "argon2": "^0.27.0",
     "connect-redis": "^5.0.0",
@@ -41,12 +37,5 @@
     "reflect-metadata": "^0.1.13",
     "type-graphql": "^1.1.0",
     "typeorm": "^0.2.31"
-  },
-  "mikro-orm": {
-    "useTsNode": true,
-    "configPaths": [
-      "./src/mikro-orm.config.ts",
-      "./dist/mikro-orm.config.js"
-    ]
   }
 }

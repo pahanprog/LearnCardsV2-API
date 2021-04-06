@@ -74,7 +74,9 @@ let UserResolver = class UserResolver {
             if (!req.session.userId) {
                 return null;
             }
-            const user = yield typeorm_1.getConnection().manager.findOne(User_1.User, { where: { id: req.session.userId } });
+            const user = yield typeorm_1.getConnection().manager.findOne(User_1.User, {
+                where: { id: req.session.userId },
+            });
             return user;
         });
     }
@@ -82,38 +84,48 @@ let UserResolver = class UserResolver {
         return __awaiter(this, void 0, void 0, function* () {
             if (options.username.length <= 5) {
                 return {
-                    errors: [{
+                    errors: [
+                        {
                             field: "username",
-                            message: "length must be greater than 6"
-                        }]
+                            message: "length must be greater than 6",
+                        },
+                    ],
                 };
             }
             if (options.password.length <= 5) {
                 return {
-                    errors: [{
+                    errors: [
+                        {
                             field: "password",
-                            message: "length must be greater than 6"
-                        }]
+                            message: "length must be greater than 6",
+                        },
+                    ],
                 };
             }
             const hashedPassword = yield argon2_1.default.hash(options.password);
             let user;
             try {
-                const result = yield typeorm_1.getConnection().createQueryBuilder().insert().into(User_1.User).values({
+                const result = yield typeorm_1.getConnection()
+                    .createQueryBuilder()
+                    .insert()
+                    .into(User_1.User)
+                    .values({
                     username: options.username,
-                    password: hashedPassword
+                    password: hashedPassword,
                 })
                     .returning("*")
                     .execute();
                 user = result.raw[0];
             }
             catch (err) {
-                if (err.code === '23505') {
+                if (err.code === "23505") {
                     return {
-                        errors: [{
-                                field: 'username',
-                                message: 'username already exists'
-                            }]
+                        errors: [
+                            {
+                                field: "username",
+                                message: "username already exists",
+                            },
+                        ],
                     };
                 }
                 else {
@@ -122,33 +134,39 @@ let UserResolver = class UserResolver {
             }
             req.session.userId = user.id;
             return {
-                user
+                user,
             };
         });
     }
     login(options, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const user = yield typeorm_1.getConnection().manager.findOne(User_1.User, { where: { username: options.username } });
+            const user = yield typeorm_1.getConnection().manager.findOne(User_1.User, {
+                where: { username: options.username },
+            });
             if (!user) {
                 return {
-                    errors: [{
-                            field: 'username',
+                    errors: [
+                        {
+                            field: "username",
                             message: "username doesnt exist",
-                        }]
+                        },
+                    ],
                 };
             }
             const valid = yield argon2_1.default.verify(user.password, options.password);
             if (!valid) {
                 return {
-                    errors: [{
-                            field: 'password',
+                    errors: [
+                        {
+                            field: "password",
                             message: "incorrect password",
-                        }]
+                        },
+                    ],
                 };
             }
             req.session.userId = user.id;
             return {
-                user
+                user,
             };
         });
     }
@@ -158,12 +176,16 @@ let UserResolver = class UserResolver {
             return new Promise((resolve) => req.session.destroy((err) => {
                 res.clearCookie("qid");
                 if (err) {
-                    console.log(err);
                     resolve(false);
                     return;
                 }
                 resolve(true);
             }));
+        });
+    }
+    getUsername(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return User_1.User.findOne({ where: { id: id } });
         });
     }
 };
@@ -176,7 +198,7 @@ __decorate([
 ], UserResolver.prototype, "me", null);
 __decorate([
     type_graphql_1.Mutation(() => UserResponse),
-    __param(0, type_graphql_1.Arg('options')),
+    __param(0, type_graphql_1.Arg("options")),
     __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [UsernamePasswordInput, Object]),
@@ -184,7 +206,7 @@ __decorate([
 ], UserResolver.prototype, "register", null);
 __decorate([
     type_graphql_1.Mutation(() => UserResponse),
-    __param(0, type_graphql_1.Arg('options')),
+    __param(0, type_graphql_1.Arg("options")),
     __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [UsernamePasswordInput, Object]),
@@ -197,6 +219,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "logout", null);
+__decorate([
+    type_graphql_1.Query(() => User_1.User, { nullable: true }),
+    __param(0, type_graphql_1.Arg("id")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "getUsername", null);
 UserResolver = __decorate([
     type_graphql_1.Resolver()
 ], UserResolver);
