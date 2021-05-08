@@ -66,7 +66,7 @@ const main = async () => {
     })
   );
 
-  app.set("trust proxy", 1);
+  app.set("trust proxy", true);
 
   app.use(
     session({
@@ -79,7 +79,7 @@ const main = async () => {
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10, //10 years
         sameSite: "lax",
-        // secure: __prod__,
+        secure: __prod__,
       },
       saveUninitialized: false,
       secret: "ifuherge",
@@ -100,7 +100,7 @@ const main = async () => {
     }),
   });
 
-  apolloServer.applyMiddleware({ app, cors: false });
+  apolloServer.applyMiddleware({ app, cors: true });
 
   app.listen(__prod__ ? process.env.PORT : 4000, async () => {
     console.log("app running at 4000");

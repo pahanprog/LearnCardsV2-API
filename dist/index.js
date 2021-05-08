@@ -68,7 +68,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         ],
         credentials: true,
     }));
-    app.set("trust proxy", 1);
+    app.set("trust proxy", true);
     app.use(express_session_1.default({
         name: "qid",
         store: new RedisStore({
@@ -79,6 +79,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             httpOnly: true,
             maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
             sameSite: "lax",
+            secure: constants_1.__prod__,
         },
         saveUninitialized: false,
         secret: "ifuherge",
@@ -96,7 +97,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             res,
         }),
     });
-    apolloServer.applyMiddleware({ app, cors: false });
+    apolloServer.applyMiddleware({ app, cors: true });
     app.listen(constants_1.__prod__ ? process.env.PORT : 4000, () => __awaiter(void 0, void 0, void 0, function* () {
         console.log("app running at 4000");
     }));
