@@ -78,7 +78,6 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             httpOnly: true,
             maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
             sameSite: "lax",
-            secure: constants_1.__prod__,
         },
         saveUninitialized: false,
         secret: "ifuherge",
