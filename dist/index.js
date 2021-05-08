@@ -30,24 +30,38 @@ const typeorm_1 = require("typeorm");
 const User_1 = require("./entities/User");
 const card_1 = require("./resolvers/card");
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
-    const conn = yield typeorm_1.createConnection({
-        type: "postgres",
-        host: "localhost",
-        port: 5050,
-        username: "postgres",
-        password: "1234",
-        database: "LearnCards",
-        entities: [User_1.User, Deck_1.Deck, Card_1.Card],
-        synchronize: true,
-        migrations: [path_1.default.join(__dirname, "./migrations/*")],
-        logging: true,
-    });
+    const conn = yield typeorm_1.createConnection(constants_1.__prod__
+        ? {
+            type: "postgres",
+            url: process.env.DATABASE_URL,
+            entities: [User_1.User, Deck_1.Deck, Card_1.Card],
+            synchronize: true,
+            migrations: [path_1.default.join(__dirname, "./migrations/*")],
+            logging: true,
+            extra: {
+                ssl: true,
+            },
+        }
+        : {
+            type: "postgres",
+            host: "localhost",
+            port: 5050,
+            username: "postgres",
+            password: "1234",
+            database: "LearnCards",
+            entities: [User_1.User, Deck_1.Deck, Card_1.Card],
+            synchronize: true,
+            migrations: [path_1.default.join(__dirname, "./migrations/*")],
+            logging: true,
+        });
     conn.runMigrations();
     const app = express_1.default();
     const RedisStore = connect_redis_1.default(express_session_1.default);
-    const redisClient = redis_1.default.createClient();
+    const redisClient = redis_1.default.createClient(constants_1.__prod__ ? process.env.REDIS_URL : "");
     app.use(cors_1.default({
-        origin: "http://localhost:3000",
+        origin: constants_1.__prod__
+            ? ["https://learncardsv2-client.herokuapp.com/"]
+            : ["http://localhost:3000", "http://localhost:19006"],
         credentials: true,
     }));
     app.use(express_session_1.default({
@@ -67,6 +81,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         resave: false,
     }));
     const apolloServer = new apollo_server_express_1.ApolloServer({
+        playground: true,
         schema: yield type_graphql_1.buildSchema({
             resolvers: [deck_1.DeckResolver, user_1.UserResolver, card_1.CardResolver],
             validate: false,

@@ -17,29 +17,47 @@ import { User } from "./entities/User";
 import { CardResolver } from "./resolvers/card";
 
 const main = async () => {
-  const conn = await createConnection({
-    type: "postgres",
-    host: "localhost",
-    port: 5050,
-    username: "postgres",
-    password: "1234",
-    database: "LearnCards",
-    entities: [User, Deck, Card],
-    synchronize: true,
-    migrations: [path.join(__dirname, "./migrations/*")],
-    logging: true,
-  });
+  const conn = await createConnection(
+    __prod__
+      ? {
+          type: "postgres",
+          url: process.env.DATABASE_URL!,
+          entities: [User, Deck, Card],
+          synchronize: true,
+          migrations: [path.join(__dirname, "./migrations/*")],
+          logging: true,
+          extra: {
+            ssl: true,
+          },
+        }
+      : {
+          type: "postgres",
+          host: "localhost",
+          port: 5050,
+          username: "postgres",
+          password: "1234",
+          database: "LearnCards",
+          entities: [User, Deck, Card],
+          synchronize: true,
+          migrations: [path.join(__dirname, "./migrations/*")],
+          logging: true,
+        }
+  );
 
   conn.runMigrations();
 
   const app = express();
 
   const RedisStore = connectRedis(session);
-  const redisClient = redis.createClient();
+  const redisClient = redis.createClient(
+    __prod__ ? process.env.REDIS_URL! : ""
+  );
 
   app.use(
     cors({
-      origin: "http://localhost:3000",
+      origin: __prod__
+        ? ["https://learncardsv2-client.herokuapp.com/"]
+        : ["http://localhost:3000", "http://localhost:19006"],
       credentials: true,
     })
   );
@@ -64,6 +82,7 @@ const main = async () => {
   );
 
   const apolloServer = new ApolloServer({
+    playground: true,
     schema: await buildSchema({
       resolvers: [DeckResolver, UserResolver, CardResolver],
       validate: false,
