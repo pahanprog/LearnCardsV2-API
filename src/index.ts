@@ -84,6 +84,7 @@ const main = async () => {
   );
 
   const apolloServer = new ApolloServer({
+    introspection: true,
     playground: true,
     schema: await buildSchema({
       resolvers: [DeckResolver, UserResolver, CardResolver],

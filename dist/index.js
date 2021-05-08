@@ -83,6 +83,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         resave: false,
     }));
     const apolloServer = new apollo_server_express_1.ApolloServer({
+        introspection: true,
         playground: true,
         schema: yield type_graphql_1.buildSchema({
             resolvers: [deck_1.DeckResolver, user_1.UserResolver, card_1.CardResolver],
