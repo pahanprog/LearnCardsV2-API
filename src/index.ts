@@ -75,12 +75,10 @@ const main = async () => {
         client: redisClient,
         disableTouch: true,
       }),
-      // cookie: {
-      //   httpOnly: true,
-      //   maxAge: 1000 * 60 * 60 * 24 * 365 * 10, //10 years
-      //   sameSite: "lax",
-      //   secure: __prod__,
-      // },
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, //10 years
+        secure: __prod__,
+      },
       saveUninitialized: false,
       secret: "ifuherge",
       resave: false,

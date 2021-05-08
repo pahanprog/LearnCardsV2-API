@@ -75,6 +75,10 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             client: redisClient,
             disableTouch: true,
         }),
+        cookie: {
+            maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
+            secure: constants_1.__prod__,
+        },
         saveUninitialized: false,
         secret: "ifuherge",
         resave: false,
