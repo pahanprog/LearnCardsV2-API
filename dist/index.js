@@ -97,7 +97,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             res,
         }),
     });
-    apolloServer.applyMiddleware({ app, cors: true });
+    apolloServer.applyMiddleware({ app, cors: false });
     app.listen(constants_1.__prod__ ? process.env.PORT : 4000, () => __awaiter(void 0, void 0, void 0, function* () {
         console.log("app running at 4000");
     }));

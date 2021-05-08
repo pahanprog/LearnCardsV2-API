@@ -100,7 +100,7 @@ const main = async () => {
     }),
   });
 
-  apolloServer.applyMiddleware({ app, cors: true });
+  apolloServer.applyMiddleware({ app, cors: false });
 
   app.listen(__prod__ ? process.env.PORT : 4000, async () => {
     console.log("app running at 4000");
