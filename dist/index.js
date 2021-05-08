@@ -78,6 +78,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         cookie: {
             maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
             secure: constants_1.__prod__,
+            sameSite: "none",
         },
         saveUninitialized: false,
         secret: "ifuherge",
