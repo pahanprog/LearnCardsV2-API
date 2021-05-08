@@ -27,7 +27,9 @@ const main = async () => {
           migrations: [path.join(__dirname, "./migrations/*")],
           logging: true,
           extra: {
-            ssl: true,
+            ssl: {
+              rejectUnauthorized: false,
+            },
           },
         }
       : {

@@ -39,7 +39,9 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             migrations: [path_1.default.join(__dirname, "./migrations/*")],
             logging: true,
             extra: {
-                ssl: true,
+                ssl: {
+                    rejectUnauthorized: false,
+                },
             },
         }
         : {
