@@ -57,9 +57,11 @@ const main = async () => {
 
   app.use(
     cors({
-      origin: __prod__
-        ? ["https://learncardsv2-client.herokuapp.com/"]
-        : ["http://localhost:3000", "http://localhost:19006"],
+      origin: [
+        "http://localhost:3000",
+        "http://localhost:19006",
+        "https://learncardsv2-client.herokuapp.com",
+      ],
       credentials: true,
     })
   );
