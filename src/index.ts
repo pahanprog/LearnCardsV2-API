@@ -66,6 +66,8 @@ const main = async () => {
     })
   );
 
+  app.set("trust proxy", 1);
+
   app.use(
     session({
       name: "qid",

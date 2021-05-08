@@ -68,6 +68,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         ],
         credentials: true,
     }));
+    app.set("trust proxy", 1);
     app.use(express_session_1.default({
         name: "qid",
         store: new RedisStore({
