@@ -79,7 +79,6 @@ const main = async () => {
         httpOnly: true,
         sameSite: "none",
         secure: __prod__,
-        domain: __prod__ ? ".herokuapp.com" : undefined,
       },
       saveUninitialized: false,
       secret: "ifuherge",
