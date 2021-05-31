@@ -175,7 +175,10 @@ let UserResolver = class UserResolver {
             const token = uuid_1.v4();
             yield redis.set(constants_1.FORGOT_PASSWORD_PREFIX + token, user.id.toString());
             yield redis.expire(constants_1.FORGOT_PASSWORD_PREFIX + token, 60 * 60 * 24);
-            yield sendEmail_1.default(email, `<a href="http://localhost:3000/change-password/${token}">reset passwod</a>`);
+            const link = constants_1.__prod__
+                ? `https://learncardsv2-client.herokuapp.com/change-password/${token}`
+                : `http://localhost:3000/change-password/${token}`;
+            yield sendEmail_1.default(email, `<a href="${link}">reset passwod</a>`);
             return true;
         });
     }

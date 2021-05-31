@@ -15,7 +15,7 @@ import { RegisterInput } from "./RegisterInput";
 import validateRegister from "../utils/ValidateRegister";
 import { v4 } from "uuid";
 import sendEmail from "../utils/sendEmail";
-import { FORGOT_PASSWORD_PREFIX } from "../constants";
+import { FORGOT_PASSWORD_PREFIX, __prod__ } from "../constants";
 import { promisify } from "util";
 import { get } from "https";
 @ObjectType()
@@ -164,11 +164,11 @@ export class UserResolver {
 
     await redis.set(FORGOT_PASSWORD_PREFIX + token, user.id.toString());
     await redis.expire(FORGOT_PASSWORD_PREFIX + token, 60 * 60 * 24);
+    const link = __prod__
+      ? `https://learncardsv2-client.herokuapp.com/change-password/${token}`
+      : `http://localhost:3000/change-password/${token}`;
 
-    await sendEmail(
-      email,
-      `<a href="http://localhost:3000/change-password/${token}">reset passwod</a>`
-    );
+    await sendEmail(email, `<a href="${link}">reset passwod</a>`);
 
     return true;
   }
