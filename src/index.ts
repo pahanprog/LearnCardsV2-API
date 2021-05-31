@@ -76,7 +76,10 @@ const main = async () => {
       }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24, //1 day
+        httpOnly: true,
+        sameSite: "none",
         secure: __prod__,
+        domain: __prod__ ? ".herokuapp.com" : undefined,
       },
       saveUninitialized: false,
       secret: "ifuherge",
