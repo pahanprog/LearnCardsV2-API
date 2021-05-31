@@ -59,16 +59,12 @@ export class DeckResolver {
         .createQueryBuilder("deck")
         .leftJoinAndSelect("deck.learners", "learners")
         .leftJoinAndSelect("deck.cards", "cards")
+        .leftJoinAndSelect("deck.creator", "creator")
         .orderBy("cards.number", "ASC")
         .where("deck.creatorId = :id", { id: req.session.userId })
         .orWhere("learners.id = :id", { id: req.session.userId })
         .getMany();
       return decks;
-      // return getConnection().manager.find(Deck, {
-      //   relations: ["cards", "learners"],
-      //   where: { creatorId: req.session.userId },
-      //   order: {},
-      // });
     } catch (e) {
       console.log(e);
       return null;
@@ -81,7 +77,6 @@ export class DeckResolver {
     @Arg("deckId") deckId: number,
     @Ctx() { req }: MyContext
   ): Promise<Deck | undefined> {
-    console.log(deckId);
     const deck = await getConnection()
       .getRepository(Deck)
       .createQueryBuilder("deck")
@@ -99,10 +94,6 @@ export class DeckResolver {
       )
       .getOne();
     return deck;
-    // return getConnection().manager.findOne(Deck, {
-    //   relations: ["cards"],
-    //   where: { id: deckId, creatorId: req.session.userId },
-    // });
   }
 
   @Mutation(() => Deck, { nullable: true })
@@ -245,6 +236,36 @@ export class DeckResolver {
     } catch (e) {
       console.log(e);
       return null;
+    }
+  }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async stopLearning(
+    @Arg("id") id: number,
+    @Ctx() { req }: MyContext
+  ): Promise<Boolean> {
+    try {
+      const deck = await getConnection().manager.findOne(Deck, {
+        relations: ["learners"],
+        where: { id: id },
+      });
+
+      if (!deck) {
+        return false;
+      }
+
+      const filtered = deck!.learners.filter((el) => {
+        return el.id != req.session.userId;
+      });
+      deck!.learners = filtered;
+
+      await deck!.save();
+
+      return true;
+    } catch (e) {
+      console.log(e);
+      return false;
     }
   }
 

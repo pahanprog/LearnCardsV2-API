@@ -29,19 +29,12 @@ const User_1 = require("../entities/User");
 const type_graphql_1 = require("type-graphql");
 const argon2_1 = __importDefault(require("argon2"));
 const typeorm_1 = require("typeorm");
-let UsernamePasswordInput = class UsernamePasswordInput {
-};
-__decorate([
-    type_graphql_1.Field(),
-    __metadata("design:type", String)
-], UsernamePasswordInput.prototype, "username", void 0);
-__decorate([
-    type_graphql_1.Field(),
-    __metadata("design:type", String)
-], UsernamePasswordInput.prototype, "password", void 0);
-UsernamePasswordInput = __decorate([
-    type_graphql_1.InputType()
-], UsernamePasswordInput);
+const RegisterInput_1 = require("./RegisterInput");
+const ValidateRegister_1 = __importDefault(require("../utils/ValidateRegister"));
+const uuid_1 = require("uuid");
+const sendEmail_1 = __importDefault(require("../utils/sendEmail"));
+const constants_1 = require("../constants");
+const util_1 = require("util");
 let FieldError = class FieldError {
 };
 __decorate([
@@ -68,6 +61,19 @@ __decorate([
 UserResponse = __decorate([
     type_graphql_1.ObjectType()
 ], UserResponse);
+let ChangePasswordResponse = class ChangePasswordResponse {
+};
+__decorate([
+    type_graphql_1.Field(() => [FieldError], { nullable: true }),
+    __metadata("design:type", Array)
+], ChangePasswordResponse.prototype, "errors", void 0);
+__decorate([
+    type_graphql_1.Field(() => Boolean, { nullable: true }),
+    __metadata("design:type", Boolean)
+], ChangePasswordResponse.prototype, "changed", void 0);
+ChangePasswordResponse = __decorate([
+    type_graphql_1.ObjectType()
+], ChangePasswordResponse);
 let UserResolver = class UserResolver {
     me({ req }) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -82,25 +88,9 @@ let UserResolver = class UserResolver {
     }
     register(options, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (options.username.length <= 5) {
-                return {
-                    errors: [
-                        {
-                            field: "username",
-                            message: "length must be greater than 6",
-                        },
-                    ],
-                };
-            }
-            if (options.password.length <= 5) {
-                return {
-                    errors: [
-                        {
-                            field: "password",
-                            message: "length must be greater than 6",
-                        },
-                    ],
-                };
+            const errors = ValidateRegister_1.default(options);
+            if (errors) {
+                return { errors };
             }
             const hashedPassword = yield argon2_1.default.hash(options.password);
             let user;
@@ -110,6 +100,7 @@ let UserResolver = class UserResolver {
                     .insert()
                     .into(User_1.User)
                     .values({
+                    email: options.email,
                     username: options.username,
                     password: hashedPassword,
                 })
@@ -119,41 +110,46 @@ let UserResolver = class UserResolver {
             }
             catch (err) {
                 if (err.code === "23505") {
-                    return {
-                        errors: [
-                            {
-                                field: "username",
-                                message: "username already exists",
-                            },
-                        ],
-                    };
+                    if (err.detail.includes("email")) {
+                        return {
+                            errors: [{ field: "email", message: "Email already exists" }],
+                        };
+                    }
+                    else {
+                        return {
+                            errors: [
+                                {
+                                    field: "username",
+                                    message: "username already exists",
+                                },
+                            ],
+                        };
+                    }
                 }
                 else {
                     console.error(err);
                 }
             }
             req.session.userId = user.id;
-            return {
-                user,
-            };
+            return { user };
         });
     }
-    login(options, { req }) {
+    login(UsernameOrEmail, Password, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const user = yield typeorm_1.getConnection().manager.findOne(User_1.User, {
-                where: { username: options.username },
-            });
+            const user = yield typeorm_1.getConnection().manager.findOne(User_1.User, UsernameOrEmail.includes("@")
+                ? { where: { email: UsernameOrEmail } }
+                : { where: { username: UsernameOrEmail } });
             if (!user) {
                 return {
                     errors: [
                         {
-                            field: "username",
-                            message: "username doesnt exist",
+                            field: "usernameOrEmail",
+                            message: "username or email not found",
                         },
                     ],
                 };
             }
-            const valid = yield argon2_1.default.verify(user.password, options.password);
+            const valid = yield argon2_1.default.verify(user.password, Password);
             if (!valid) {
                 return {
                     errors: [
@@ -170,9 +166,64 @@ let UserResolver = class UserResolver {
             };
         });
     }
+    forgotPassword(email, { redis }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const user = yield User_1.User.findOne({ where: { email: email } });
+            if (!user) {
+                return true;
+            }
+            const token = uuid_1.v4();
+            yield redis.set(constants_1.FORGOT_PASSWORD_PREFIX + token, user.id.toString());
+            yield redis.expire(constants_1.FORGOT_PASSWORD_PREFIX + token, 60 * 60 * 24);
+            yield sendEmail_1.default(email, `<a href="http://localhost:3000/change-password/${token}">reset passwod</a>`);
+            return true;
+        });
+    }
+    changePassword(token, newPassword, { redis }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (newPassword.length <= 6) {
+                return {
+                    errors: [
+                        {
+                            field: "newPassword",
+                            message: "length must be greater than 6",
+                        },
+                    ],
+                };
+            }
+            const key = constants_1.FORGOT_PASSWORD_PREFIX + token;
+            const getAsync = util_1.promisify(redis.get).bind(redis);
+            const userId = (yield getAsync(key));
+            if (!userId) {
+                return {
+                    errors: [
+                        {
+                            field: "token",
+                            message: "token expired",
+                        },
+                    ],
+                };
+            }
+            const user = yield User_1.User.findOne({ where: { id: parseInt(userId) } });
+            if (!user) {
+                return {
+                    errors: [
+                        {
+                            field: "token",
+                            message: "user no longer exists",
+                        },
+                    ],
+                };
+            }
+            const hashedPassword = yield argon2_1.default.hash(newPassword);
+            user.password = hashedPassword;
+            yield user.save();
+            redis.del(key);
+            return { changed: true };
+        });
+    }
     logout({ req, res }) {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log(req.session.userId);
             return new Promise((resolve) => req.session.destroy((err) => {
                 res.clearCookie("qid");
                 if (err) {
@@ -181,11 +232,6 @@ let UserResolver = class UserResolver {
                 }
                 resolve(true);
             }));
-        });
-    }
-    getUsername(id) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return User_1.User.findOne({ where: { id: id } });
         });
     }
 };
@@ -201,17 +247,35 @@ __decorate([
     __param(0, type_graphql_1.Arg("options")),
     __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [UsernamePasswordInput, Object]),
+    __metadata("design:paramtypes", [RegisterInput_1.RegisterInput, Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "register", null);
 __decorate([
     type_graphql_1.Mutation(() => UserResponse),
-    __param(0, type_graphql_1.Arg("options")),
-    __param(1, type_graphql_1.Ctx()),
+    __param(0, type_graphql_1.Arg("UsernameOrEmail")),
+    __param(1, type_graphql_1.Arg("Password")),
+    __param(2, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [UsernamePasswordInput, Object]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "login", null);
+__decorate([
+    type_graphql_1.Mutation(() => Boolean),
+    __param(0, type_graphql_1.Arg("email")),
+    __param(1, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "forgotPassword", null);
+__decorate([
+    type_graphql_1.Mutation(() => ChangePasswordResponse),
+    __param(0, type_graphql_1.Arg("token")),
+    __param(1, type_graphql_1.Arg("newPassword")),
+    __param(2, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "changePassword", null);
 __decorate([
     type_graphql_1.Mutation(() => Boolean),
     __param(0, type_graphql_1.Ctx()),
@@ -219,13 +283,6 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "logout", null);
-__decorate([
-    type_graphql_1.Query(() => User_1.User, { nullable: true }),
-    __param(0, type_graphql_1.Arg("id")),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number]),
-    __metadata("design:returntype", Promise)
-], UserResolver.prototype, "getUsername", null);
 UserResolver = __decorate([
     type_graphql_1.Resolver()
 ], UserResolver);

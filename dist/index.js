@@ -29,6 +29,7 @@ const Card_1 = require("./entities/Card");
 const typeorm_1 = require("typeorm");
 const User_1 = require("./entities/User");
 const card_1 = require("./resolvers/card");
+require("dotenv").config();
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const conn = yield typeorm_1.createConnection(constants_1.__prod__
         ? {
@@ -59,7 +60,8 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     conn.runMigrations();
     const app = express_1.default();
     const RedisStore = connect_redis_1.default(express_session_1.default);
-    const redisClient = redis_1.default.createClient(constants_1.__prod__ ? process.env.REDIS_URL : "");
+    const redis = redis_1.default.createClient(constants_1.__prod__ ? process.env.REDIS_URL : "");
+    app.set("trust proxy", 1);
     app.use(cors_1.default({
         origin: [
             "http://localhost:3000",
@@ -68,17 +70,15 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         ],
         credentials: true,
     }));
-    app.set("trust proxy", true);
     app.use(express_session_1.default({
         name: "qid",
         store: new RedisStore({
-            client: redisClient,
+            client: redis,
             disableTouch: true,
         }),
         cookie: {
-            maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
+            maxAge: 1000 * 60 * 60 * 24,
             secure: constants_1.__prod__,
-            sameSite: "none",
         },
         saveUninitialized: false,
         secret: "ifuherge",
@@ -91,10 +91,13 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             resolvers: [deck_1.DeckResolver, user_1.UserResolver, card_1.CardResolver],
             validate: false,
         }),
-        context: ({ req, res }) => ({
-            req,
-            res,
-        }),
+        context: ({ req, res }) => {
+            return {
+                req,
+                res,
+                redis,
+            };
+        },
     });
     apolloServer.applyMiddleware({ app, cors: false });
     app.listen(constants_1.__prod__ ? process.env.PORT : 4000, () => __awaiter(void 0, void 0, void 0, function* () {

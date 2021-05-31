@@ -6,7 +6,7 @@ import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { DeckResolver } from "./resolvers/deck";
 import { UserResolver } from "./resolvers/user";
-import redis from "redis";
+import Redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import cors from "cors";
@@ -15,6 +15,8 @@ import { Card } from "./entities/Card";
 import { createConnection } from "typeorm";
 import { User } from "./entities/User";
 import { CardResolver } from "./resolvers/card";
+import { MyContext } from "./types";
+require("dotenv").config();
 
 const main = async () => {
   const conn = await createConnection(
@@ -51,9 +53,8 @@ const main = async () => {
   const app = express();
 
   const RedisStore = connectRedis(session);
-  const redisClient = redis.createClient(
-    __prod__ ? process.env.REDIS_URL! : ""
-  );
+  const redis = Redis.createClient(__prod__ ? process.env.REDIS_URL! : "");
+  app.set("trust proxy", 1);
 
   app.use(
     cors({
@@ -66,19 +67,16 @@ const main = async () => {
     })
   );
 
-  app.set("trust proxy", true);
-
   app.use(
     session({
       name: "qid",
       store: new RedisStore({
-        client: redisClient,
+        client: redis,
         disableTouch: true,
       }),
       cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, //10 years
+        maxAge: 1000 * 60 * 60 * 24, //1 day
         secure: __prod__,
-        sameSite: "none",
       },
       saveUninitialized: false,
       secret: "ifuherge",
@@ -93,10 +91,13 @@ const main = async () => {
       resolvers: [DeckResolver, UserResolver, CardResolver],
       validate: false,
     }),
-    context: ({ req, res }) => ({
-      req,
-      res,
-    }),
+    context: ({ req, res }: MyContext) => {
+      return {
+        req,
+        res,
+        redis,
+      };
+    },
   });
 
   apolloServer.applyMiddleware({ app, cors: false });

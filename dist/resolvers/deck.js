@@ -86,6 +86,7 @@ let DeckResolver = class DeckResolver {
                     .createQueryBuilder("deck")
                     .leftJoinAndSelect("deck.learners", "learners")
                     .leftJoinAndSelect("deck.cards", "cards")
+                    .leftJoinAndSelect("deck.creator", "creator")
                     .orderBy("cards.number", "ASC")
                     .where("deck.creatorId = :id", { id: req.session.userId })
                     .orWhere("learners.id = :id", { id: req.session.userId })
@@ -100,7 +101,6 @@ let DeckResolver = class DeckResolver {
     }
     deck(deckId, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log(deckId);
             const deck = yield typeorm_1.getConnection()
                 .getRepository(Deck_1.Deck)
                 .createQueryBuilder("deck")
@@ -235,6 +235,29 @@ let DeckResolver = class DeckResolver {
             }
         });
     }
+    stopLearning(id, { req }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const deck = yield typeorm_1.getConnection().manager.findOne(Deck_1.Deck, {
+                    relations: ["learners"],
+                    where: { id: id },
+                });
+                if (!deck) {
+                    return false;
+                }
+                const filtered = deck.learners.filter((el) => {
+                    return el.id != req.session.userId;
+                });
+                deck.learners = filtered;
+                yield deck.save();
+                return true;
+            }
+            catch (e) {
+                console.log(e);
+                return false;
+            }
+        });
+    }
     deckSearch(title) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -321,6 +344,15 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "startLearning", null);
+__decorate([
+    type_graphql_1.Mutation(() => Boolean),
+    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
+    __param(0, type_graphql_1.Arg("id")),
+    __param(1, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], DeckResolver.prototype, "stopLearning", null);
 __decorate([
     type_graphql_1.Query(() => [Deck_1.Deck], { nullable: true }),
     type_graphql_1.UseMiddleware(isAuth_1.isAuth),
