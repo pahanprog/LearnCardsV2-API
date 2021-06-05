@@ -3,13 +3,15 @@ import {
   Arg,
   Ctx,
   Field,
+  FieldResolver,
   InputType,
   Mutation,
   Query,
   Resolver,
+  Root,
   UseMiddleware,
 } from "type-graphql";
-import { Brackets, getConnection, Like, QueryBuilder } from "typeorm";
+import { Brackets, getConnection } from "typeorm";
 import { MyContext } from "../types";
 import { isAuth } from "../middleware/isAuth";
 import { Card } from "../entities/Card";
@@ -48,8 +50,18 @@ export class CardInputWithId {
   id?: number;
 }
 
-@Resolver()
+@Resolver((of) => Deck)
 export class DeckResolver {
+  @FieldResolver(() => Boolean)
+  canEdit(@Root() deck: Deck, @Ctx() { req }: MyContext) {
+    return deck.creatorId == req.session.userId;
+  }
+
+  @FieldResolver(() => Boolean)
+  isLearner(@Root() deck: Deck, @Ctx() { req }: MyContext) {
+    return deck.creatorId != req.session.userId;
+  }
+
   @Query(() => [Deck], { nullable: true })
   @UseMiddleware(isAuth)
   async decks(@Ctx() { req }: MyContext): Promise<Deck[] | null> {
@@ -195,16 +207,42 @@ export class DeckResolver {
   @UseMiddleware(isAuth)
   async deleteDeck(
     @Arg("id") id: number,
+    @Arg("isLearner") isLearner: boolean,
     @Ctx() { req }: MyContext
   ): Promise<Boolean> {
-    try {
-      const deck = await getConnection().manager.findOne(Deck, {
-        where: { id: id, creatorId: req.session.userId },
-      });
-      await getConnection().manager.remove(deck);
-    } catch (e) {
-      console.log(e);
-      return false;
+    if (isLearner) {
+      try {
+        const deck = await getConnection().manager.findOne(Deck, {
+          relations: ["learners"],
+          where: { id: id },
+        });
+
+        if (!deck) {
+          return false;
+        }
+
+        const filtered = deck!.learners.filter((el) => {
+          return el.id != req.session.userId;
+        });
+        deck!.learners = filtered;
+
+        await deck!.save();
+
+        return true;
+      } catch (e) {
+        console.log(e);
+        return false;
+      }
+    } else {
+      try {
+        const deck = await getConnection().manager.findOne(Deck, {
+          where: { id: id, creatorId: req.session.userId },
+        });
+        await getConnection().manager.remove(deck);
+      } catch (e) {
+        console.log(e);
+        return false;
+      }
     }
     return true;
   }
@@ -236,36 +274,6 @@ export class DeckResolver {
     } catch (e) {
       console.log(e);
       return null;
-    }
-  }
-
-  @Mutation(() => Boolean)
-  @UseMiddleware(isAuth)
-  async stopLearning(
-    @Arg("id") id: number,
-    @Ctx() { req }: MyContext
-  ): Promise<Boolean> {
-    try {
-      const deck = await getConnection().manager.findOne(Deck, {
-        relations: ["learners"],
-        where: { id: id },
-      });
-
-      if (!deck) {
-        return false;
-      }
-
-      const filtered = deck!.learners.filter((el) => {
-        return el.id != req.session.userId;
-      });
-      deck!.learners = filtered;
-
-      await deck!.save();
-
-      return true;
-    } catch (e) {
-      console.log(e);
-      return false;
     }
   }
 

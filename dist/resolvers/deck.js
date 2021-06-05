@@ -78,6 +78,12 @@ CardInputWithId = __decorate([
 ], CardInputWithId);
 exports.CardInputWithId = CardInputWithId;
 let DeckResolver = class DeckResolver {
+    canEdit(deck, { req }) {
+        return deck.creatorId == req.session.userId;
+    }
+    isLearner(deck, { req }) {
+        return deck.creatorId != req.session.userId;
+    }
     decks({ req }) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -197,17 +203,40 @@ let DeckResolver = class DeckResolver {
             return deck;
         });
     }
-    deleteDeck(id, { req }) {
+    deleteDeck(id, isLearner, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const deck = yield typeorm_1.getConnection().manager.findOne(Deck_1.Deck, {
-                    where: { id: id, creatorId: req.session.userId },
-                });
-                yield typeorm_1.getConnection().manager.remove(deck);
+            if (isLearner) {
+                try {
+                    const deck = yield typeorm_1.getConnection().manager.findOne(Deck_1.Deck, {
+                        relations: ["learners"],
+                        where: { id: id },
+                    });
+                    if (!deck) {
+                        return false;
+                    }
+                    const filtered = deck.learners.filter((el) => {
+                        return el.id != req.session.userId;
+                    });
+                    deck.learners = filtered;
+                    yield deck.save();
+                    return true;
+                }
+                catch (e) {
+                    console.log(e);
+                    return false;
+                }
             }
-            catch (e) {
-                console.log(e);
-                return false;
+            else {
+                try {
+                    const deck = yield typeorm_1.getConnection().manager.findOne(Deck_1.Deck, {
+                        where: { id: id, creatorId: req.session.userId },
+                    });
+                    yield typeorm_1.getConnection().manager.remove(deck);
+                }
+                catch (e) {
+                    console.log(e);
+                    return false;
+                }
             }
             return true;
         });
@@ -235,29 +264,6 @@ let DeckResolver = class DeckResolver {
             }
         });
     }
-    stopLearning(id, { req }) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const deck = yield typeorm_1.getConnection().manager.findOne(Deck_1.Deck, {
-                    relations: ["learners"],
-                    where: { id: id },
-                });
-                if (!deck) {
-                    return false;
-                }
-                const filtered = deck.learners.filter((el) => {
-                    return el.id != req.session.userId;
-                });
-                deck.learners = filtered;
-                yield deck.save();
-                return true;
-            }
-            catch (e) {
-                console.log(e);
-                return false;
-            }
-        });
-    }
     deckSearch(title) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -279,6 +285,20 @@ let DeckResolver = class DeckResolver {
         });
     }
 };
+__decorate([
+    type_graphql_1.FieldResolver(() => Boolean),
+    __param(0, type_graphql_1.Root()), __param(1, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Deck_1.Deck, Object]),
+    __metadata("design:returntype", void 0)
+], DeckResolver.prototype, "canEdit", null);
+__decorate([
+    type_graphql_1.FieldResolver(() => Boolean),
+    __param(0, type_graphql_1.Root()), __param(1, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Deck_1.Deck, Object]),
+    __metadata("design:returntype", void 0)
+], DeckResolver.prototype, "isLearner", null);
 __decorate([
     type_graphql_1.Query(() => [Deck_1.Deck], { nullable: true }),
     type_graphql_1.UseMiddleware(isAuth_1.isAuth),
@@ -330,9 +350,10 @@ __decorate([
     type_graphql_1.Mutation(() => Boolean),
     type_graphql_1.UseMiddleware(isAuth_1.isAuth),
     __param(0, type_graphql_1.Arg("id")),
-    __param(1, type_graphql_1.Ctx()),
+    __param(1, type_graphql_1.Arg("isLearner")),
+    __param(2, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number, Boolean, Object]),
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "deleteDeck", null);
 __decorate([
@@ -345,15 +366,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "startLearning", null);
 __decorate([
-    type_graphql_1.Mutation(() => Boolean),
-    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
-    __param(0, type_graphql_1.Arg("id")),
-    __param(1, type_graphql_1.Ctx()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
-    __metadata("design:returntype", Promise)
-], DeckResolver.prototype, "stopLearning", null);
-__decorate([
     type_graphql_1.Query(() => [Deck_1.Deck], { nullable: true }),
     type_graphql_1.UseMiddleware(isAuth_1.isAuth),
     __param(0, type_graphql_1.Arg("title")),
@@ -362,7 +374,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "deckSearch", null);
 DeckResolver = __decorate([
-    type_graphql_1.Resolver()
+    type_graphql_1.Resolver((of) => Deck_1.Deck)
 ], DeckResolver);
 exports.DeckResolver = DeckResolver;
 //# sourceMappingURL=deck.js.map
