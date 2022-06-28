@@ -29,7 +29,7 @@ const main = async () => {
       ? {
           type: "postgres",
           url: process.env.DATABASE_URL!,
-          entities: [User, Deck, Card],
+          entities: [User, Deck, Card, CardStats, Session],
           synchronize: true,
           migrations: [path.join(__dirname, "./migrations/*")],
           logging: true,
