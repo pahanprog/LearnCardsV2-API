@@ -29,9 +29,13 @@ const Card_1 = require("./entities/Card");
 const typeorm_1 = require("typeorm");
 const User_1 = require("./entities/User");
 const card_1 = require("./resolvers/card");
+const passport_1 = __importDefault(require("passport"));
+const auth_1 = __importDefault(require("./routes/auth"));
+const CardStats_1 = require("./entities/CardStats");
+const Session_1 = require("./entities/Session");
 require("dotenv").config();
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
-    const conn = yield typeorm_1.createConnection(constants_1.__prod__
+    const conn = yield (0, typeorm_1.createConnection)(constants_1.__prod__
         ? {
             type: "postgres",
             url: process.env.DATABASE_URL,
@@ -52,17 +56,17 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             username: "postgres",
             password: "1234",
             database: "LearnCards",
-            entities: [User_1.User, Deck_1.Deck, Card_1.Card],
+            entities: [User_1.User, Deck_1.Deck, Card_1.Card, CardStats_1.CardStats, Session_1.Session],
             synchronize: true,
             migrations: [path_1.default.join(__dirname, "./migrations/*")],
             logging: true,
         });
     conn.runMigrations();
-    const app = express_1.default();
-    const RedisStore = connect_redis_1.default(express_session_1.default);
+    const app = (0, express_1.default)();
+    const RedisStore = (0, connect_redis_1.default)(express_session_1.default);
     const redis = redis_1.default.createClient(constants_1.__prod__ ? process.env.REDIS_URL : "");
     app.set("trust proxy", 1);
-    app.use(cors_1.default({
+    app.use((0, cors_1.default)({
         origin: [
             "http://localhost:3000",
             "http://localhost:19006",
@@ -70,26 +74,10 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         ],
         credentials: true,
     }));
-    app.use(express_session_1.default({
-        name: "qid",
-        store: new RedisStore({
-            client: redis,
-            disableTouch: true,
-        }),
-        cookie: {
-            maxAge: 1000 * 60 * 60 * 24,
-            httpOnly: true,
-            sameSite: "none",
-            secure: constants_1.__prod__,
-        },
-        saveUninitialized: false,
-        secret: "ifuherge",
-        resave: false,
-    }));
     const apolloServer = new apollo_server_express_1.ApolloServer({
         introspection: true,
         playground: true,
-        schema: yield type_graphql_1.buildSchema({
+        schema: yield (0, type_graphql_1.buildSchema)({
             resolvers: [deck_1.DeckResolver, user_1.UserResolver, card_1.CardResolver],
             validate: false,
         }),
@@ -101,9 +89,22 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             };
         },
     });
+    app.use(express_1.default.json({ limit: "10mb" }));
+    app.use(passport_1.default.initialize());
+    app.post("/graphql", (req, res, next) => {
+        passport_1.default.authenticate("jwt", { session: false }, (err, user, info) => {
+            err;
+            info;
+            if (user) {
+                req.user = user;
+            }
+            next();
+        })(req, res, next);
+    });
+    app.use("/auth", auth_1.default);
     apolloServer.applyMiddleware({ app, cors: false });
-    app.listen(constants_1.__prod__ ? process.env.PORT : 4000, () => __awaiter(void 0, void 0, void 0, function* () {
-        console.log("app running at 4000");
+    app.listen(constants_1.__prod__ ? process.env.PORT : 5000, () => __awaiter(void 0, void 0, void 0, function* () {
+        console.log("app running at 5000");
     }));
 });
 main().catch((err) => {

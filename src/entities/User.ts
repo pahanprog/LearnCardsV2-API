@@ -10,10 +10,23 @@ import {
 } from "typeorm";
 import { Field, ObjectType } from "type-graphql";
 import { Deck } from "./Deck";
+import { CardStats } from "./CardStats";
+import { Session } from "./Session";
+
+@ObjectType()
+class UserDeckStats {
+  @Field()
+  unique: number;
+  @Field()
+  overall: number;
+  @Field()
+  percent: number;
+}
 
 @ObjectType()
 @Entity()
 export class User extends BaseEntity {
+  //main columns
   @Field()
   @PrimaryGeneratedColumn()
   id!: number;
@@ -26,12 +39,6 @@ export class User extends BaseEntity {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => Deck, (deck) => deck.creator)
-  decks: Deck[];
-
-  @ManyToMany(() => Deck, (deck) => deck.learners)
-  learning: Deck[];
-
   @Field()
   @Column({ unique: true })
   username!: string;
@@ -42,4 +49,25 @@ export class User extends BaseEntity {
 
   @Column()
   password!: string;
+
+  //relations
+
+  @OneToMany(() => Deck, (deck) => deck.creator)
+  decks: Deck[];
+
+  @ManyToMany(() => Deck, (deck) => deck.learners)
+  learning: Deck[];
+
+  @OneToMany(() => CardStats, (cardStats) => cardStats.user)
+  stats: CardStats[];
+
+  @OneToMany(() => Session, (session) => session.user)
+  sessions: Session[];
+
+  @Field(() => UserDeckStats)
+  deckStats: {
+    unique: number;
+    overall: number;
+    percent: number;
+  };
 }

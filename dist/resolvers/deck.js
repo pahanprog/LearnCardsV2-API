@@ -20,82 +20,91 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __asyncValues = (this && this.__asyncValues) || function (o) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var m = o[Symbol.asyncIterator], i;
+    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
+    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
+    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeckResolver = exports.CardInputWithId = exports.CardInput = void 0;
 const Deck_1 = require("../entities/Deck");
 const type_graphql_1 = require("type-graphql");
 const typeorm_1 = require("typeorm");
-const isAuth_1 = require("../middleware/isAuth");
 const Card_1 = require("../entities/Card");
 const User_1 = require("../entities/User");
+const isAuth_1 = require("../middleware/isAuth");
+const CardStats_1 = require("../entities/CardStats");
+const Session_1 = require("../entities/Session");
 let DeckInput = class DeckInput {
 };
 __decorate([
-    type_graphql_1.Field(),
+    (0, type_graphql_1.Field)(),
     __metadata("design:type", String)
 ], DeckInput.prototype, "title", void 0);
 __decorate([
-    type_graphql_1.Field(),
+    (0, type_graphql_1.Field)(),
     __metadata("design:type", String)
 ], DeckInput.prototype, "description", void 0);
 DeckInput = __decorate([
-    type_graphql_1.InputType()
+    (0, type_graphql_1.InputType)()
 ], DeckInput);
 let CardInput = class CardInput {
 };
 __decorate([
-    type_graphql_1.Field(),
+    (0, type_graphql_1.Field)(),
     __metadata("design:type", String)
 ], CardInput.prototype, "question", void 0);
 __decorate([
-    type_graphql_1.Field(),
+    (0, type_graphql_1.Field)(),
     __metadata("design:type", String)
 ], CardInput.prototype, "answer", void 0);
 CardInput = __decorate([
-    type_graphql_1.InputType()
+    (0, type_graphql_1.InputType)()
 ], CardInput);
 exports.CardInput = CardInput;
 let CardInputWithId = class CardInputWithId {
 };
 __decorate([
-    type_graphql_1.Field(),
+    (0, type_graphql_1.Field)(),
     __metadata("design:type", String)
 ], CardInputWithId.prototype, "question", void 0);
 __decorate([
-    type_graphql_1.Field(),
+    (0, type_graphql_1.Field)(),
     __metadata("design:type", String)
 ], CardInputWithId.prototype, "answer", void 0);
 __decorate([
-    type_graphql_1.Field(),
+    (0, type_graphql_1.Field)(),
     __metadata("design:type", Number)
-], CardInputWithId.prototype, "number", void 0);
+], CardInputWithId.prototype, "order", void 0);
 __decorate([
-    type_graphql_1.Field({ nullable: true }),
+    (0, type_graphql_1.Field)({ nullable: true }),
     __metadata("design:type", Number)
 ], CardInputWithId.prototype, "id", void 0);
 CardInputWithId = __decorate([
-    type_graphql_1.InputType()
+    (0, type_graphql_1.InputType)()
 ], CardInputWithId);
 exports.CardInputWithId = CardInputWithId;
 let DeckResolver = class DeckResolver {
     canEdit(deck, { req }) {
-        return deck.creatorId == req.session.userId;
+        return deck.creator.id === req.user;
     }
     isLearner(deck, { req }) {
-        return deck.creatorId != req.session.userId;
+        return deck.creator.id !== req.user;
     }
     decks({ req }) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const decks = yield typeorm_1.getConnection()
+                const decks = yield (0, typeorm_1.getConnection)()
                     .getRepository(Deck_1.Deck)
                     .createQueryBuilder("deck")
                     .leftJoinAndSelect("deck.learners", "learners")
                     .leftJoinAndSelect("deck.cards", "cards")
                     .leftJoinAndSelect("deck.creator", "creator")
-                    .orderBy("cards.number", "ASC")
-                    .where("deck.creatorId = :id", { id: req.session.userId })
-                    .orWhere("learners.id = :id", { id: req.session.userId })
+                    .orderBy("cards.order", "ASC")
+                    .where("creator.id = :id", { id: req.user })
+                    .orWhere("learners.id = :id", { id: req.user })
                     .getMany();
                 return decks;
             }
@@ -106,31 +115,87 @@ let DeckResolver = class DeckResolver {
         });
     }
     deck(deckId, { req }) {
+        var e_1, _a, e_2, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            const deck = yield typeorm_1.getConnection()
+            const deck = yield (0, typeorm_1.getConnection)()
                 .getRepository(Deck_1.Deck)
                 .createQueryBuilder("deck")
                 .leftJoinAndSelect("deck.learners", "learners")
                 .leftJoinAndSelect("deck.cards", "cards")
                 .leftJoinAndSelect("deck.creator", "creator")
-                .orderBy("cards.number", "ASC")
+                .leftJoinAndSelect("cards.stats", "stats", "stats.userId = :userId", {
+                userId: req.user,
+            })
+                .orderBy("cards.order", "ASC")
                 .where("deck.id = :deckid", { deckid: deckId })
                 .andWhere(new typeorm_1.Brackets((qb) => {
-                qb.where("deck.creatorId = :crId", {
-                    crId: req.session.userId,
-                }).orWhere("learners.id = :lrId", { lrId: req.session.userId });
+                qb.where("creator.id = :crId", {
+                    crId: req.user,
+                }).orWhere("learners.id = :lrId", { lrId: req.user });
             }))
                 .getOne();
+            if (deck) {
+                try {
+                    for (var _c = __asyncValues(deck === null || deck === void 0 ? void 0 : deck.learners), _d; _d = yield _c.next(), !_d.done;) {
+                        const l = _d.value;
+                        console.log("Learner ", l);
+                        let performanceRatingArray = [];
+                        const overAll = yield (0, typeorm_1.getConnection)()
+                            .getRepository(Session_1.Session)
+                            .createQueryBuilder("session")
+                            .where('"deckId" = :deckId', { deckId })
+                            .andWhere('"userId" = :userId', { userId: l.id })
+                            .getMany();
+                        let overAllSum = 0;
+                        overAll.forEach((sess) => {
+                            overAllSum = overAllSum + sess.finishedCards;
+                        });
+                        try {
+                            for (var _e = (e_2 = void 0, __asyncValues(deck.cards)), _f; _f = yield _e.next(), !_f.done;) {
+                                const c = _f.value;
+                                const stats = yield CardStats_1.CardStats.findOne({
+                                    where: { card: c, user: l },
+                                });
+                                if (stats) {
+                                    performanceRatingArray.push(stats.lastPerformanceRating);
+                                }
+                            }
+                        }
+                        catch (e_2_1) { e_2 = { error: e_2_1 }; }
+                        finally {
+                            try {
+                                if (_f && !_f.done && (_b = _e.return)) yield _b.call(_e);
+                            }
+                            finally { if (e_2) throw e_2.error; }
+                        }
+                        const percent = parseFloat(((performanceRatingArray.reduce((sum, perf) => sum + perf, 0) /
+                            deck.cards.length) *
+                            100).toFixed(2));
+                        l.deckStats = {
+                            overall: overAllSum,
+                            percent: percent ? percent : 0,
+                            unique: performanceRatingArray.length,
+                        };
+                    }
+                }
+                catch (e_1_1) { e_1 = { error: e_1_1 }; }
+                finally {
+                    try {
+                        if (_d && !_d.done && (_a = _c.return)) yield _a.call(_c);
+                    }
+                    finally { if (e_1) throw e_1.error; }
+                }
+            }
             return deck;
         });
     }
     createDeck(input, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const user = yield User_1.User.findOne({ where: { id: req.session.userId } });
+            const user = yield User_1.User.findOne({ where: { id: req.user } });
             const deck = Deck_1.Deck.create({
                 title: input.title,
                 description: input.description,
-                creatorId: req.session.userId,
+                creator: user,
                 learners: [user],
             }).save();
             return deck;
@@ -138,9 +203,9 @@ let DeckResolver = class DeckResolver {
     }
     updateDeckInfo(id, input, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const deck = yield typeorm_1.getConnection().manager.findOne(Deck_1.Deck, {
+            const deck = yield (0, typeorm_1.getConnection)().manager.findOne(Deck_1.Deck, {
                 relations: ["cards"],
-                where: { id: id, creatorId: req.session.userId },
+                where: { id: id, creator: req.user },
             });
             if (!deck) {
                 return null;
@@ -151,55 +216,82 @@ let DeckResolver = class DeckResolver {
             if (typeof input.description !== "undefined") {
                 deck.description = input.description;
             }
-            yield typeorm_1.getConnection().manager.save(deck);
+            yield (0, typeorm_1.getConnection)().manager.save(deck);
             return deck;
         });
     }
     updateDeckCards(deckId, update, del, { req }) {
+        var update_1, update_1_1, del_1, del_1_1;
+        var e_3, _a, e_4, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            const check = yield typeorm_1.getConnection().manager.findOne(Deck_1.Deck, {
-                where: { id: deckId, creatorId: req.session.userId },
+            const check = yield (0, typeorm_1.getConnection)().manager.findOne(Deck_1.Deck, {
+                where: { id: deckId, creator: req.user },
+                relations: ["cards"],
             });
             if (!check) {
                 return undefined;
             }
-            yield update.forEach((value) => __awaiter(this, void 0, void 0, function* () {
-                if (value.id) {
-                    try {
-                        const card = yield Card_1.Card.findOne({
-                            where: { id: value.id, parentId: deckId },
-                        });
-                        card.answer = value.answer;
-                        card.question = value.question;
-                        typeorm_1.getConnection().manager.save(card);
+            try {
+                for (update_1 = __asyncValues(update); update_1_1 = yield update_1.next(), !update_1_1.done;) {
+                    const value = update_1_1.value;
+                    if (value.id) {
+                        try {
+                            const card = yield Card_1.Card.findOne({
+                                where: { id: value.id, deck: check },
+                            });
+                            card.answer = value.answer;
+                            card.question = value.question;
+                            card.order = value.order;
+                            yield (card === null || card === void 0 ? void 0 : card.save());
+                        }
+                        catch (err) {
+                            console.error(err);
+                        }
                     }
-                    catch (err) {
-                        console.error(err);
+                    else {
+                        try {
+                            yield Card_1.Card.create({
+                                answer: value.answer,
+                                question: value.question,
+                                order: value.order,
+                                deck: check,
+                            }).save();
+                        }
+                        catch (err) {
+                            console.error(err);
+                        }
                     }
                 }
-                else {
-                    try {
-                        yield Card_1.Card.create({
-                            answer: value.answer,
-                            question: value.question,
-                            parentId: deckId,
-                            number: value.number,
-                        }).save();
-                    }
-                    catch (err) {
-                        console.error(err);
-                    }
-                }
-            }));
-            if (del) {
-                yield del.forEach((value) => __awaiter(this, void 0, void 0, function* () {
-                    yield typeorm_1.getConnection().manager.delete(Card_1.Card, { id: value.id });
-                }));
             }
-            const deck = typeorm_1.getConnection().manager.findOne(Deck_1.Deck, {
-                relations: ["cards"],
-                where: { id: deckId, creatorId: req.session.userId },
-            });
+            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+            finally {
+                try {
+                    if (update_1_1 && !update_1_1.done && (_a = update_1.return)) yield _a.call(update_1);
+                }
+                finally { if (e_3) throw e_3.error; }
+            }
+            if (del) {
+                try {
+                    for (del_1 = __asyncValues(del); del_1_1 = yield del_1.next(), !del_1_1.done;) {
+                        const value = del_1_1.value;
+                        yield (0, typeorm_1.getConnection)().manager.delete(Card_1.Card, { id: value.id });
+                    }
+                }
+                catch (e_4_1) { e_4 = { error: e_4_1 }; }
+                finally {
+                    try {
+                        if (del_1_1 && !del_1_1.done && (_b = del_1.return)) yield _b.call(del_1);
+                    }
+                    finally { if (e_4) throw e_4.error; }
+                }
+            }
+            const deck = yield (0, typeorm_1.getConnection)()
+                .getRepository(Deck_1.Deck)
+                .createQueryBuilder("deck")
+                .leftJoinAndSelect("deck.cards", "cards")
+                .where("deck.id = :deckId", { deckId })
+                .orderBy("cards.order", "ASC")
+                .getOne();
             return deck;
         });
     }
@@ -207,15 +299,15 @@ let DeckResolver = class DeckResolver {
         return __awaiter(this, void 0, void 0, function* () {
             if (isLearner) {
                 try {
-                    const deck = yield typeorm_1.getConnection().manager.findOne(Deck_1.Deck, {
-                        relations: ["learners"],
+                    const deck = yield (0, typeorm_1.getConnection)().manager.findOne(Deck_1.Deck, {
+                        relations: ["learners", "creator"],
                         where: { id: id },
                     });
                     if (!deck) {
                         return false;
                     }
                     const filtered = deck.learners.filter((el) => {
-                        return el.id != req.session.userId;
+                        return el.id != req.user;
                     });
                     deck.learners = filtered;
                     yield deck.save();
@@ -228,10 +320,10 @@ let DeckResolver = class DeckResolver {
             }
             else {
                 try {
-                    const deck = yield typeorm_1.getConnection().manager.findOne(Deck_1.Deck, {
-                        where: { id: id, creatorId: req.session.userId },
+                    const deck = yield (0, typeorm_1.getConnection)().manager.findOne(Deck_1.Deck, {
+                        where: { id: id, creator: req.user },
                     });
-                    yield typeorm_1.getConnection().manager.remove(deck);
+                    yield (0, typeorm_1.getConnection)().manager.remove(deck);
                 }
                 catch (e) {
                     console.log(e);
@@ -244,15 +336,15 @@ let DeckResolver = class DeckResolver {
     startLearning(id, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const deck = yield typeorm_1.getConnection().manager.findOne(Deck_1.Deck, {
-                    relations: ["learners"],
+                const deck = yield (0, typeorm_1.getConnection)().manager.findOne(Deck_1.Deck, {
+                    relations: ["learners", "creator"],
                     where: { id: id },
                 });
                 if (!deck) {
                     return null;
                 }
-                const user = yield typeorm_1.getConnection().manager.findOne(User_1.User, {
-                    where: { id: req.session.userId },
+                const user = yield (0, typeorm_1.getConnection)().manager.findOne(User_1.User, {
+                    where: { id: req.user },
                 });
                 deck.learners.push(user);
                 yield deck.save();
@@ -264,17 +356,23 @@ let DeckResolver = class DeckResolver {
             }
         });
     }
-    deckSearch(title) {
+    deckSearch(title, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const decks = yield typeorm_1.getConnection()
+                const decks = yield (0, typeorm_1.getConnection)()
                     .getRepository(Deck_1.Deck)
                     .createQueryBuilder("deck")
                     .leftJoinAndSelect("deck.learners", "learners")
                     .leftJoinAndSelect("deck.cards", "cards")
                     .leftJoin("deck.creator", "creator")
-                    .where("deck.title like :dTitle", { dTitle: `%${title}%` })
-                    .orderBy("cards.number", "ASC")
+                    .where("LOWER(deck.title) like :dTitle", {
+                    dTitle: `%${title.toLowerCase()}%`,
+                })
+                    .orWhere("LOWER(deck.description) like :dTitle", {
+                    dTitle: `%${title.toLowerCase()}%`,
+                })
+                    .andWhere("creator.id != :id", { id: req.user })
+                    .orderBy("cards.order", "ASC")
                     .select(["deck", "cards", "learners.username", "creator.username"])
                     .getMany();
                 return decks;
@@ -284,97 +382,124 @@ let DeckResolver = class DeckResolver {
             }
         });
     }
+    discover({ req }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const order = yield (0, typeorm_1.getConnection)().query(`SELECT deck."id", COUNT("user"."id") FROM "deck" JOIN "deck_learners_user" ON "deck_learners_user"."deckId" = "deck"."id" JOIN "user" ON "user"."id" = "deck_learners_user"."userId" GROUP BY "deck"."id" ORDER BY "count" DESC`);
+                const ids = order.map((i) => i.id);
+                const decks = yield Deck_1.Deck.find({
+                    where: { id: (0, typeorm_1.In)(ids) },
+                    relations: ["creator", "learners", "cards"],
+                });
+                return decks;
+            }
+            catch (err) {
+                return null;
+            }
+        });
+    }
 };
 __decorate([
-    type_graphql_1.FieldResolver(() => Boolean),
-    __param(0, type_graphql_1.Root()), __param(1, type_graphql_1.Ctx()),
+    (0, type_graphql_1.FieldResolver)(() => Boolean),
+    __param(0, (0, type_graphql_1.Root)()),
+    __param(1, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Deck_1.Deck, Object]),
     __metadata("design:returntype", void 0)
 ], DeckResolver.prototype, "canEdit", null);
 __decorate([
-    type_graphql_1.FieldResolver(() => Boolean),
-    __param(0, type_graphql_1.Root()), __param(1, type_graphql_1.Ctx()),
+    (0, type_graphql_1.FieldResolver)(() => Boolean),
+    __param(0, (0, type_graphql_1.Root)()),
+    __param(1, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Deck_1.Deck, Object]),
     __metadata("design:returntype", void 0)
 ], DeckResolver.prototype, "isLearner", null);
 __decorate([
-    type_graphql_1.Query(() => [Deck_1.Deck], { nullable: true }),
-    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
-    __param(0, type_graphql_1.Ctx()),
+    (0, type_graphql_1.Query)(() => [Deck_1.Deck], { nullable: true }),
+    (0, type_graphql_1.UseMiddleware)(isAuth_1.isAuth),
+    __param(0, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "decks", null);
 __decorate([
-    type_graphql_1.Query(() => Deck_1.Deck, { nullable: true }),
-    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
-    __param(0, type_graphql_1.Arg("deckId")),
-    __param(1, type_graphql_1.Ctx()),
+    (0, type_graphql_1.Query)(() => Deck_1.Deck, { nullable: true }),
+    (0, type_graphql_1.UseMiddleware)(isAuth_1.isAuth),
+    __param(0, (0, type_graphql_1.Arg)("deckId")),
+    __param(1, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "deck", null);
 __decorate([
-    type_graphql_1.Mutation(() => Deck_1.Deck, { nullable: true }),
-    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
-    __param(0, type_graphql_1.Arg("input")),
-    __param(1, type_graphql_1.Ctx()),
+    (0, type_graphql_1.Mutation)(() => Deck_1.Deck, { nullable: true }),
+    (0, type_graphql_1.UseMiddleware)(isAuth_1.isAuth),
+    __param(0, (0, type_graphql_1.Arg)("input")),
+    __param(1, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [DeckInput, Object]),
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "createDeck", null);
 __decorate([
-    type_graphql_1.Mutation(() => Deck_1.Deck, { nullable: true }),
-    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
-    __param(0, type_graphql_1.Arg("id")),
-    __param(1, type_graphql_1.Arg("input")),
-    __param(2, type_graphql_1.Ctx()),
+    (0, type_graphql_1.Mutation)(() => Deck_1.Deck, { nullable: true }),
+    (0, type_graphql_1.UseMiddleware)(isAuth_1.isAuth),
+    __param(0, (0, type_graphql_1.Arg)("id")),
+    __param(1, (0, type_graphql_1.Arg)("input")),
+    __param(2, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number, DeckInput, Object]),
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "updateDeckInfo", null);
 __decorate([
-    type_graphql_1.Mutation(() => Deck_1.Deck, { nullable: true }),
-    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
-    __param(0, type_graphql_1.Arg("deckId")),
-    __param(1, type_graphql_1.Arg("update", () => [CardInputWithId])),
-    __param(2, type_graphql_1.Arg("del", () => [CardInputWithId], { nullable: true })),
-    __param(3, type_graphql_1.Ctx()),
+    (0, type_graphql_1.Mutation)(() => Deck_1.Deck, { nullable: true }),
+    (0, type_graphql_1.UseMiddleware)(isAuth_1.isAuth),
+    __param(0, (0, type_graphql_1.Arg)("deckId")),
+    __param(1, (0, type_graphql_1.Arg)("update", () => [CardInputWithId])),
+    __param(2, (0, type_graphql_1.Arg)("del", () => [CardInputWithId], { nullable: true })),
+    __param(3, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number, Array, Array, Object]),
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "updateDeckCards", null);
 __decorate([
-    type_graphql_1.Mutation(() => Boolean),
-    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
-    __param(0, type_graphql_1.Arg("id")),
-    __param(1, type_graphql_1.Arg("isLearner")),
-    __param(2, type_graphql_1.Ctx()),
+    (0, type_graphql_1.Mutation)(() => Boolean),
+    (0, type_graphql_1.UseMiddleware)(isAuth_1.isAuth),
+    __param(0, (0, type_graphql_1.Arg)("id")),
+    __param(1, (0, type_graphql_1.Arg)("isLearner")),
+    __param(2, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number, Boolean, Object]),
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "deleteDeck", null);
 __decorate([
-    type_graphql_1.Mutation(() => Deck_1.Deck, { nullable: true }),
-    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
-    __param(0, type_graphql_1.Arg("id")),
-    __param(1, type_graphql_1.Ctx()),
+    (0, type_graphql_1.Mutation)(() => Deck_1.Deck, { nullable: true }),
+    (0, type_graphql_1.UseMiddleware)(isAuth_1.isAuth),
+    __param(0, (0, type_graphql_1.Arg)("id")),
+    __param(1, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "startLearning", null);
 __decorate([
-    type_graphql_1.Query(() => [Deck_1.Deck], { nullable: true }),
-    type_graphql_1.UseMiddleware(isAuth_1.isAuth),
-    __param(0, type_graphql_1.Arg("title")),
+    (0, type_graphql_1.Query)(() => [Deck_1.Deck], { nullable: true }),
+    (0, type_graphql_1.UseMiddleware)(isAuth_1.isAuth),
+    __param(0, (0, type_graphql_1.Arg)("title")),
+    __param(1, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], DeckResolver.prototype, "deckSearch", null);
+__decorate([
+    (0, type_graphql_1.Query)(() => [Deck_1.Deck], { nullable: true }),
+    (0, type_graphql_1.UseMiddleware)(isAuth_1.isAuth),
+    __param(0, (0, type_graphql_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], DeckResolver.prototype, "discover", null);
 DeckResolver = __decorate([
-    type_graphql_1.Resolver((of) => Deck_1.Deck)
+    (0, type_graphql_1.Resolver)(() => Deck_1.Deck)
 ], DeckResolver);
 exports.DeckResolver = DeckResolver;
 //# sourceMappingURL=deck.js.map

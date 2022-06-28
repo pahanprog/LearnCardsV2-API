@@ -24,9 +24,9 @@ const sendEmail = (to, html) => __awaiter(void 0, void 0, void 0, function* () {
         },
     });
     let info = yield transporter.sendMail({
-        from: '"LearnCards - change password" <learn.cards@yandex.ru>',
+        from: '"LearnCards - Восстановление пароля" <learn.cards@yandex.ru>',
         to,
-        subject: "Change password",
+        subject: "Восстановление пароля",
         html,
     });
 });

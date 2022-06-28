@@ -13,30 +13,23 @@ import {
 import { Field, ObjectType } from "type-graphql";
 import { Card } from "./Card";
 import { User } from "./User";
+import { Session } from "./Session";
 
 @ObjectType()
 @Entity()
 export class Deck extends BaseEntity {
+  //main columns
   @Field()
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Field(() => [Card])
-  @OneToMany(() => Card, (card) => card.parent)
-  cards: Card[];
+  @Field(() => String)
+  @CreateDateColumn()
+  createdAt: Date;
 
-  @Field()
-  @Column()
-  creatorId: number;
-
-  @Field(() => User)
-  @ManyToOne(() => User, (user) => user.id)
-  creator: User;
-
-  @Field(() => [User])
-  @ManyToMany(() => User)
-  @JoinTable()
-  learners: User[];
+  @Field(() => String)
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @Field()
   @Column()
@@ -46,11 +39,21 @@ export class Deck extends BaseEntity {
   @Column()
   description!: string;
 
-  @Field(() => String)
-  @CreateDateColumn()
-  createdAt: Date;
+  //relations
+  @Field(() => [Card])
+  @OneToMany(() => Card, (card) => card.deck)
+  cards: Card[];
 
-  @Field(() => String)
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @Field(() => [Session])
+  @OneToMany(() => Session, (session) => session.deck)
+  sessions: Session[];
+
+  @Field(() => User)
+  @ManyToOne(() => User, (user) => user.id)
+  creator: User;
+
+  @Field(() => [User])
+  @ManyToMany(() => User)
+  @JoinTable()
+  learners: User[];
 }

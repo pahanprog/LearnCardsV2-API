@@ -14,57 +14,58 @@ const typeorm_1 = require("typeorm");
 const type_graphql_1 = require("type-graphql");
 const Card_1 = require("./Card");
 const User_1 = require("./User");
+const Session_1 = require("./Session");
 let Deck = class Deck extends typeorm_1.BaseEntity {
 };
 __decorate([
-    type_graphql_1.Field(),
-    typeorm_1.PrimaryGeneratedColumn(),
+    (0, type_graphql_1.Field)(),
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
     __metadata("design:type", Number)
 ], Deck.prototype, "id", void 0);
 __decorate([
-    type_graphql_1.Field(() => [Card_1.Card]),
-    typeorm_1.OneToMany(() => Card_1.Card, (card) => card.parent),
-    __metadata("design:type", Array)
-], Deck.prototype, "cards", void 0);
-__decorate([
-    type_graphql_1.Field(),
-    typeorm_1.Column(),
-    __metadata("design:type", Number)
-], Deck.prototype, "creatorId", void 0);
-__decorate([
-    type_graphql_1.Field(() => User_1.User),
-    typeorm_1.ManyToOne(() => User_1.User, (user) => user.id),
-    __metadata("design:type", User_1.User)
-], Deck.prototype, "creator", void 0);
-__decorate([
-    type_graphql_1.Field(() => [User_1.User]),
-    typeorm_1.ManyToMany(() => User_1.User),
-    typeorm_1.JoinTable(),
-    __metadata("design:type", Array)
-], Deck.prototype, "learners", void 0);
-__decorate([
-    type_graphql_1.Field(),
-    typeorm_1.Column(),
-    __metadata("design:type", String)
-], Deck.prototype, "title", void 0);
-__decorate([
-    type_graphql_1.Field(),
-    typeorm_1.Column(),
-    __metadata("design:type", String)
-], Deck.prototype, "description", void 0);
-__decorate([
-    type_graphql_1.Field(() => String),
-    typeorm_1.CreateDateColumn(),
+    (0, type_graphql_1.Field)(() => String),
+    (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], Deck.prototype, "createdAt", void 0);
 __decorate([
-    type_graphql_1.Field(() => String),
-    typeorm_1.UpdateDateColumn(),
+    (0, type_graphql_1.Field)(() => String),
+    (0, typeorm_1.UpdateDateColumn)(),
     __metadata("design:type", Date)
 ], Deck.prototype, "updatedAt", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(),
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Deck.prototype, "title", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(),
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Deck.prototype, "description", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(() => [Card_1.Card]),
+    (0, typeorm_1.OneToMany)(() => Card_1.Card, (card) => card.deck),
+    __metadata("design:type", Array)
+], Deck.prototype, "cards", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(() => [Session_1.Session]),
+    (0, typeorm_1.OneToMany)(() => Session_1.Session, (session) => session.deck),
+    __metadata("design:type", Array)
+], Deck.prototype, "sessions", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(() => User_1.User),
+    (0, typeorm_1.ManyToOne)(() => User_1.User, (user) => user.id),
+    __metadata("design:type", User_1.User)
+], Deck.prototype, "creator", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(() => [User_1.User]),
+    (0, typeorm_1.ManyToMany)(() => User_1.User),
+    (0, typeorm_1.JoinTable)(),
+    __metadata("design:type", Array)
+], Deck.prototype, "learners", void 0);
 Deck = __decorate([
-    type_graphql_1.ObjectType(),
-    typeorm_1.Entity()
+    (0, type_graphql_1.ObjectType)(),
+    (0, typeorm_1.Entity)()
 ], Deck);
 exports.Deck = Deck;
 //# sourceMappingURL=Deck.js.map

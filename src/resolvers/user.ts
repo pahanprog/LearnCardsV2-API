@@ -49,105 +49,12 @@ class ChangePasswordResponse {
 export class UserResolver {
   @Query(() => User, { nullable: true })
   async me(@Ctx() { req }: MyContext) {
-    if (!req.session!.userId) {
+    if (!req.user) {
       return null;
     }
 
-    const user = await getConnection().manager.findOne(User, {
-      where: { id: req.session.userId },
-    });
+    const user = await User.findOne(req.user);
     return user;
-  }
-
-  @Mutation(() => UserResponse)
-  async register(
-    @Arg("options") options: RegisterInput,
-    @Ctx() { req }: MyContext
-  ): Promise<UserResponse> {
-    const errors = validateRegister(options);
-    if (errors) {
-      return { errors };
-    }
-    const hashedPassword = await argon2.hash(options.password);
-    let user;
-    try {
-      const result = await getConnection()
-        .createQueryBuilder()
-        .insert()
-        .into(User)
-        .values({
-          email: options.email,
-          username: options.username,
-          password: hashedPassword,
-        })
-        .returning("*")
-        .execute();
-      user = result.raw[0];
-    } catch (err) {
-      if (err.code === "23505") {
-        if (err.detail.includes("email")) {
-          return {
-            errors: [{ field: "email", message: "Email already exists" }],
-          };
-        } else {
-          return {
-            errors: [
-              {
-                field: "username",
-                message: "username already exists",
-              },
-            ],
-          };
-        }
-      } else {
-        console.error(err);
-      }
-    }
-
-    req.session!.userId = user.id;
-
-    return { user };
-  }
-
-  @Mutation(() => UserResponse)
-  async login(
-    @Arg("UsernameOrEmail") UsernameOrEmail: string,
-    @Arg("Password") Password: string,
-    @Ctx() { req }: MyContext
-  ): Promise<UserResponse> {
-    const user = await getConnection().manager.findOne(
-      User,
-      UsernameOrEmail.includes("@")
-        ? { where: { email: UsernameOrEmail } }
-        : { where: { username: UsernameOrEmail } }
-    );
-    if (!user) {
-      return {
-        errors: [
-          {
-            field: "usernameOrEmail",
-            message: "username or email not found",
-          },
-        ],
-      };
-    }
-    const valid = await argon2.verify(user.password, Password);
-    if (!valid) {
-      return {
-        errors: [
-          {
-            field: "password",
-            message: "incorrect password",
-          },
-        ],
-      };
-    }
-
-    req.session!.userId = user.id;
-
-    return {
-      user,
-    };
   }
 
   @Mutation(() => Boolean)
@@ -168,7 +75,10 @@ export class UserResolver {
       ? `https://learncardsv2-client.herokuapp.com/change-password/${token}`
       : `http://localhost:3000/change-password/${token}`;
 
-    await sendEmail(email, `<a href="${link}">reset passwod</a>`);
+    await sendEmail(
+      email,
+      `<div>Мы получили запрос на восстановления пароля вашего профиля в приложении LearnCards, чтобы изменить пароль пройдите по ссылке ниже, если вы не запрашивали смену пароля, то игнорируйте это письмо.<div><a href="${link}">reset passwod</a>`
+    );
 
     return true;
   }
@@ -206,7 +116,7 @@ export class UserResolver {
       };
     }
 
-    const user = await User.findOne({ where: { id: parseInt(userId) } });
+    const user = await User.findOne(parseInt(userId));
 
     if (!user) {
       return {
@@ -231,16 +141,8 @@ export class UserResolver {
 
   @Mutation(() => Boolean)
   async logout(@Ctx() { req, res }: MyContext) {
-    return new Promise((resolve) =>
-      req.session.destroy((err) => {
-        res.clearCookie("qid");
-        if (err) {
-          resolve(false);
-          return;
-        }
-
-        resolve(true);
-      })
-    );
+    req;
+    res;
+    return true;
   }
 }

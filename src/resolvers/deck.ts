@@ -11,11 +11,14 @@ import {
   Root,
   UseMiddleware,
 } from "type-graphql";
-import { Brackets, getConnection } from "typeorm";
+import { Brackets, getConnection, In } from "typeorm";
 import { MyContext } from "../types";
-import { isAuth } from "../middleware/isAuth";
 import { Card } from "../entities/Card";
 import { User } from "../entities/User";
+import { isAuth } from "../middleware/isAuth";
+import { CardStats } from "../entities/CardStats";
+import { Console } from "console";
+import { Session } from "../entities/Session";
 
 @InputType()
 class DeckInput {
@@ -44,22 +47,22 @@ export class CardInputWithId {
   answer!: string;
 
   @Field()
-  number!: number;
+  order!: number;
 
   @Field({ nullable: true })
   id?: number;
 }
 
-@Resolver((of) => Deck)
+@Resolver(() => Deck)
 export class DeckResolver {
   @FieldResolver(() => Boolean)
   canEdit(@Root() deck: Deck, @Ctx() { req }: MyContext) {
-    return deck.creatorId == req.session.userId;
+    return deck.creator.id === req.user;
   }
 
   @FieldResolver(() => Boolean)
   isLearner(@Root() deck: Deck, @Ctx() { req }: MyContext) {
-    return deck.creatorId != req.session.userId;
+    return deck.creator.id !== req.user;
   }
 
   @Query(() => [Deck], { nullable: true })
@@ -72,9 +75,9 @@ export class DeckResolver {
         .leftJoinAndSelect("deck.learners", "learners")
         .leftJoinAndSelect("deck.cards", "cards")
         .leftJoinAndSelect("deck.creator", "creator")
-        .orderBy("cards.number", "ASC")
-        .where("deck.creatorId = :id", { id: req.session.userId })
-        .orWhere("learners.id = :id", { id: req.session.userId })
+        .orderBy("cards.order", "ASC")
+        .where("creator.id = :id", { id: req.user })
+        .orWhere("learners.id = :id", { id: req.user })
         .getMany();
       return decks;
     } catch (e) {
@@ -95,16 +98,55 @@ export class DeckResolver {
       .leftJoinAndSelect("deck.learners", "learners")
       .leftJoinAndSelect("deck.cards", "cards")
       .leftJoinAndSelect("deck.creator", "creator")
-      .orderBy("cards.number", "ASC")
+      .leftJoinAndSelect("cards.stats", "stats", "stats.userId = :userId", {
+        userId: req.user,
+      })
+      .orderBy("cards.order", "ASC")
       .where("deck.id = :deckid", { deckid: deckId })
       .andWhere(
         new Brackets((qb) => {
-          qb.where("deck.creatorId = :crId", {
-            crId: req.session.userId,
-          }).orWhere("learners.id = :lrId", { lrId: req.session.userId });
+          qb.where("creator.id = :crId", {
+            crId: req.user,
+          }).orWhere("learners.id = :lrId", { lrId: req.user });
         })
       )
       .getOne();
+    if (deck) {
+      for await (const l of deck?.learners) {
+        console.log("Learner ", l);
+        let performanceRatingArray = [];
+        const overAll = await getConnection()
+          .getRepository(Session)
+          .createQueryBuilder("session")
+          .where('"deckId" = :deckId', { deckId })
+          .andWhere('"userId" = :userId', { userId: l.id })
+          .getMany();
+        let overAllSum = 0;
+        overAll.forEach((sess) => {
+          overAllSum = overAllSum + sess.finishedCards;
+        });
+        for await (const c of deck.cards) {
+          const stats = await CardStats.findOne({
+            where: { card: c, user: l },
+          });
+          if (stats) {
+            performanceRatingArray.push(stats.lastPerformanceRating);
+          }
+        }
+        const percent = parseFloat(
+          (
+            (performanceRatingArray.reduce((sum, perf) => sum + perf, 0) /
+              deck.cards.length) *
+            100
+          ).toFixed(2)
+        );
+        l.deckStats = {
+          overall: overAllSum,
+          percent: percent ? percent : 0,
+          unique: performanceRatingArray.length,
+        };
+      }
+    }
     return deck;
   }
 
@@ -114,14 +156,15 @@ export class DeckResolver {
     @Arg("input") input: DeckInput,
     @Ctx() { req }: MyContext
   ): Promise<Deck | null> {
-    const user = await User.findOne({ where: { id: req.session.userId } });
+    const user = await User.findOne({ where: { id: req.user } });
 
     const deck = Deck.create({
       title: input.title,
       description: input.description,
-      creatorId: req.session!.userId,
+      creator: user,
       learners: [user!],
     }).save();
+
     return deck;
   }
 
@@ -134,7 +177,7 @@ export class DeckResolver {
   ): Promise<Deck | null> {
     const deck = await getConnection().manager.findOne(Deck, {
       relations: ["cards"],
-      where: { id: id, creatorId: req.session.userId },
+      where: { id: id, creator: req.user },
     });
     if (!deck) {
       return null;
@@ -159,22 +202,24 @@ export class DeckResolver {
     @Ctx() { req }: MyContext
   ): Promise<Deck | undefined> {
     const check = await getConnection().manager.findOne(Deck, {
-      where: { id: deckId, creatorId: req.session.userId },
+      where: { id: deckId, creator: req.user },
+      relations: ["cards"],
     });
 
     if (!check) {
       return undefined;
     }
 
-    await update.forEach(async (value) => {
+    for await (const value of update) {
       if (value.id) {
         try {
           const card = await Card.findOne({
-            where: { id: value.id, parentId: deckId },
+            where: { id: value.id, deck: check },
           });
           card!.answer = value.answer;
           card!.question = value.question;
-          getConnection().manager.save(card);
+          card!.order = value.order;
+          await card?.save();
         } catch (err) {
           console.error(err);
         }
@@ -183,23 +228,33 @@ export class DeckResolver {
           await Card.create({
             answer: value.answer,
             question: value.question,
-            parentId: deckId,
-            number: value.number,
+            order: value.order,
+            deck: check,
           }).save();
         } catch (err) {
           console.error(err);
         }
       }
-    });
-    if (del) {
-      await del.forEach(async (value) => {
-        await getConnection().manager.delete(Card, { id: value.id });
-      });
     }
-    const deck = getConnection().manager.findOne(Deck, {
-      relations: ["cards"],
-      where: { id: deckId, creatorId: req.session.userId },
-    });
+    if (del) {
+      for await (const value of del) {
+        await getConnection().manager.delete(Card, { id: value.id });
+      }
+    }
+
+    // const deck = await getConnection().manager.findOne(Deck, {
+    //   relations: ["cards"],
+    //   where: { id: deckId, creator: req.user },
+    // });
+
+    const deck = await getConnection()
+      .getRepository(Deck)
+      .createQueryBuilder("deck")
+      .leftJoinAndSelect("deck.cards", "cards")
+      .where("deck.id = :deckId", { deckId })
+      .orderBy("cards.order", "ASC")
+      .getOne();
+
     return deck;
   }
 
@@ -213,7 +268,7 @@ export class DeckResolver {
     if (isLearner) {
       try {
         const deck = await getConnection().manager.findOne(Deck, {
-          relations: ["learners"],
+          relations: ["learners", "creator"],
           where: { id: id },
         });
 
@@ -222,7 +277,7 @@ export class DeckResolver {
         }
 
         const filtered = deck!.learners.filter((el) => {
-          return el.id != req.session.userId;
+          return el.id != req.user;
         });
         deck!.learners = filtered;
 
@@ -236,7 +291,7 @@ export class DeckResolver {
     } else {
       try {
         const deck = await getConnection().manager.findOne(Deck, {
-          where: { id: id, creatorId: req.session.userId },
+          where: { id: id, creator: req.user },
         });
         await getConnection().manager.remove(deck);
       } catch (e) {
@@ -255,7 +310,7 @@ export class DeckResolver {
   ): Promise<Deck | null> {
     try {
       const deck = await getConnection().manager.findOne(Deck, {
-        relations: ["learners"],
+        relations: ["learners", "creator"],
         where: { id: id },
       });
 
@@ -264,7 +319,7 @@ export class DeckResolver {
       }
 
       const user = await getConnection().manager.findOne(User, {
-        where: { id: req.session.userId },
+        where: { id: req.user },
       });
       deck!.learners.push(user!);
 
@@ -279,7 +334,10 @@ export class DeckResolver {
 
   @Query(() => [Deck], { nullable: true })
   @UseMiddleware(isAuth)
-  async deckSearch(@Arg("title") title: string): Promise<Deck[] | null> {
+  async deckSearch(
+    @Arg("title") title: string,
+    @Ctx() { req }: MyContext
+  ): Promise<Deck[] | null> {
     try {
       const decks = await getConnection()
         .getRepository(Deck)
@@ -287,12 +345,36 @@ export class DeckResolver {
         .leftJoinAndSelect("deck.learners", "learners")
         .leftJoinAndSelect("deck.cards", "cards")
         .leftJoin("deck.creator", "creator")
-        .where("deck.title like :dTitle", { dTitle: `%${title}%` })
-        .orderBy("cards.number", "ASC")
+        .where("LOWER(deck.title) like :dTitle", {
+          dTitle: `%${title.toLowerCase()}%`,
+        })
+        .orWhere("LOWER(deck.description) like :dTitle", {
+          dTitle: `%${title.toLowerCase()}%`,
+        })
+        .andWhere("creator.id != :id", { id: req.user })
+        .orderBy("cards.order", "ASC")
         .select(["deck", "cards", "learners.username", "creator.username"])
         .getMany();
       return decks;
     } catch (er) {
+      return null;
+    }
+  }
+
+  @Query(() => [Deck], { nullable: true })
+  @UseMiddleware(isAuth)
+  async discover(@Ctx() { req }: MyContext): Promise<Deck[] | null> {
+    try {
+      const order = await getConnection().query(
+        `SELECT deck."id", COUNT("user"."id") FROM "deck" JOIN "deck_learners_user" ON "deck_learners_user"."deckId" = "deck"."id" JOIN "user" ON "user"."id" = "deck_learners_user"."userId" GROUP BY "deck"."id" ORDER BY "count" DESC`
+      );
+      const ids = order.map((i: any) => i.id);
+      const decks = await Deck.find({
+        where: { id: In(ids) },
+        relations: ["creator", "learners", "cards"],
+      });
+      return decks;
+    } catch (err) {
       return null;
     }
   }

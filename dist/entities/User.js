@@ -13,48 +13,79 @@ exports.User = void 0;
 const typeorm_1 = require("typeorm");
 const type_graphql_1 = require("type-graphql");
 const Deck_1 = require("./Deck");
+const CardStats_1 = require("./CardStats");
+const Session_1 = require("./Session");
+let UserDeckStats = class UserDeckStats {
+};
+__decorate([
+    (0, type_graphql_1.Field)(),
+    __metadata("design:type", Number)
+], UserDeckStats.prototype, "unique", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(),
+    __metadata("design:type", Number)
+], UserDeckStats.prototype, "overall", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(),
+    __metadata("design:type", Number)
+], UserDeckStats.prototype, "percent", void 0);
+UserDeckStats = __decorate([
+    (0, type_graphql_1.ObjectType)()
+], UserDeckStats);
 let User = class User extends typeorm_1.BaseEntity {
 };
 __decorate([
-    type_graphql_1.Field(),
-    typeorm_1.PrimaryGeneratedColumn(),
+    (0, type_graphql_1.Field)(),
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
     __metadata("design:type", Number)
 ], User.prototype, "id", void 0);
 __decorate([
-    type_graphql_1.Field(() => String),
-    typeorm_1.CreateDateColumn(),
+    (0, type_graphql_1.Field)(() => String),
+    (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], User.prototype, "createdAt", void 0);
 __decorate([
-    type_graphql_1.Field(() => String),
-    typeorm_1.UpdateDateColumn(),
+    (0, type_graphql_1.Field)(() => String),
+    (0, typeorm_1.UpdateDateColumn)(),
     __metadata("design:type", Date)
 ], User.prototype, "updatedAt", void 0);
 __decorate([
-    typeorm_1.OneToMany(() => Deck_1.Deck, (deck) => deck.creator),
-    __metadata("design:type", Array)
-], User.prototype, "decks", void 0);
-__decorate([
-    typeorm_1.ManyToMany(() => Deck_1.Deck, (deck) => deck.learners),
-    __metadata("design:type", Array)
-], User.prototype, "learning", void 0);
-__decorate([
-    type_graphql_1.Field(),
-    typeorm_1.Column({ unique: true }),
+    (0, type_graphql_1.Field)(),
+    (0, typeorm_1.Column)({ unique: true }),
     __metadata("design:type", String)
 ], User.prototype, "username", void 0);
 __decorate([
-    type_graphql_1.Field(),
-    typeorm_1.Column({ unique: true }),
+    (0, type_graphql_1.Field)(),
+    (0, typeorm_1.Column)({ unique: true }),
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
 __decorate([
-    typeorm_1.Column(),
+    (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], User.prototype, "password", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => Deck_1.Deck, (deck) => deck.creator),
+    __metadata("design:type", Array)
+], User.prototype, "decks", void 0);
+__decorate([
+    (0, typeorm_1.ManyToMany)(() => Deck_1.Deck, (deck) => deck.learners),
+    __metadata("design:type", Array)
+], User.prototype, "learning", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => CardStats_1.CardStats, (cardStats) => cardStats.user),
+    __metadata("design:type", Array)
+], User.prototype, "stats", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => Session_1.Session, (session) => session.user),
+    __metadata("design:type", Array)
+], User.prototype, "sessions", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(() => UserDeckStats),
+    __metadata("design:type", Object)
+], User.prototype, "deckStats", void 0);
 User = __decorate([
-    type_graphql_1.ObjectType(),
-    typeorm_1.Entity()
+    (0, type_graphql_1.ObjectType)(),
+    (0, typeorm_1.Entity)()
 ], User);
 exports.User = User;
 //# sourceMappingURL=User.js.map

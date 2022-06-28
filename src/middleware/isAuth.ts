@@ -1,11 +1,10 @@
-import { nextTick } from "process";
 import { MyContext } from "src/types";
 import { MiddlewareFn } from "type-graphql";
 
 export const isAuth: MiddlewareFn<MyContext> = ({ context }, next) => {
-  if (!context.req.session.userId) {
-    throw new Error("not aunthenticated");
-  }
-
-  return next();
+    console.log("IS AUTH ", context.req.isAuthenticated())
+    if (!context.req.isAuthenticated()) {
+        throw new Error("not aunthenticated");
+    }
+    return next();
 };

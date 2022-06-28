@@ -16,8 +16,13 @@ import { createConnection } from "typeorm";
 import { User } from "./entities/User";
 import { CardResolver } from "./resolvers/card";
 import { MyContext } from "./types";
-require("dotenv").config();
+import passport from "passport";
+import authRoute from "./routes/auth";
+import { CardStats } from "./entities/CardStats";
+import { Session } from "./entities/Session";
 
+require("dotenv").config();
+//
 const main = async () => {
   const conn = await createConnection(
     __prod__
@@ -41,7 +46,7 @@ const main = async () => {
           username: "postgres",
           password: "1234",
           database: "LearnCards",
-          entities: [User, Deck, Card],
+          entities: [User, Deck, Card, CardStats, Session],
           synchronize: true,
           migrations: [path.join(__dirname, "./migrations/*")],
           logging: true,
@@ -67,25 +72,6 @@ const main = async () => {
     })
   );
 
-  app.use(
-    session({
-      name: "qid",
-      store: new RedisStore({
-        client: redis,
-        disableTouch: true,
-      }),
-      cookie: {
-        maxAge: 1000 * 60 * 60 * 24, //1 day
-        httpOnly: true,
-        sameSite: "none",
-        secure: __prod__,
-      },
-      saveUninitialized: false,
-      secret: "ifuherge",
-      resave: false,
-    })
-  );
-
   const apolloServer = new ApolloServer({
     introspection: true,
     playground: true,
@@ -102,10 +88,25 @@ const main = async () => {
     },
   });
 
+  app.use(express.json({ limit: "10mb" }));
+  app.use(passport.initialize());
+  app.post("/graphql", (req, res, next) => {
+    passport.authenticate("jwt", { session: false }, (err, user, info) => {
+      err;
+      info;
+      if (user) {
+        req.user = user;
+      }
+      next();
+    })(req, res, next);
+  });
+
+  app.use("/auth", authRoute);
+
   apolloServer.applyMiddleware({ app, cors: false });
 
-  app.listen(__prod__ ? process.env.PORT : 4000, async () => {
-    console.log("app running at 4000");
+  app.listen(__prod__ ? process.env.PORT : 5000, async () => {
+    console.log("app running at 5000");
   });
 };
 

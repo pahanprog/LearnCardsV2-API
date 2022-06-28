@@ -12,9 +12,9 @@ const sendEmail = async (to: string, html: string) => {
   });
 
   let info = await transporter.sendMail({
-    from: '"LearnCards - change password" <learn.cards@yandex.ru>',
+    from: '"LearnCards - Восстановление пароля" <learn.cards@yandex.ru>',
     to,
-    subject: "Change password",
+    subject: "Восстановление пароля",
     html,
   });
 };

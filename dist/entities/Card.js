@@ -13,42 +13,62 @@ exports.Card = void 0;
 const typeorm_1 = require("typeorm");
 const type_graphql_1 = require("type-graphql");
 const Deck_1 = require("./Deck");
+const CardStats_1 = require("./CardStats");
+const Session_1 = require("./Session");
 let Card = class Card extends typeorm_1.BaseEntity {
 };
 __decorate([
-    type_graphql_1.Field(),
-    typeorm_1.PrimaryGeneratedColumn(),
+    (0, type_graphql_1.Field)(),
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
     __metadata("design:type", Number)
 ], Card.prototype, "id", void 0);
 __decorate([
-    type_graphql_1.Field(),
-    typeorm_1.Column(),
+    (0, type_graphql_1.Field)(() => String),
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], Card.prototype, "createdAt", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(() => String),
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], Card.prototype, "updatedAt", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(),
+    (0, typeorm_1.Column)(),
     __metadata("design:type", Number)
-], Card.prototype, "number", void 0);
+], Card.prototype, "order", void 0);
 __decorate([
-    type_graphql_1.Field(),
-    typeorm_1.Column(),
-    __metadata("design:type", Number)
-], Card.prototype, "parentId", void 0);
-__decorate([
-    typeorm_1.ManyToOne(() => Deck_1.Deck, (deck) => deck.cards, {
-        onDelete: "CASCADE",
-    }),
-    __metadata("design:type", Deck_1.Deck)
-], Card.prototype, "parent", void 0);
-__decorate([
-    type_graphql_1.Field(),
-    typeorm_1.Column({ type: "text" }),
+    (0, type_graphql_1.Field)(),
+    (0, typeorm_1.Column)({ type: "text" }),
     __metadata("design:type", String)
 ], Card.prototype, "question", void 0);
 __decorate([
-    type_graphql_1.Field(),
-    typeorm_1.Column({ type: "text" }),
+    (0, type_graphql_1.Field)(),
+    (0, typeorm_1.Column)({ type: "text" }),
     __metadata("design:type", String)
 ], Card.prototype, "answer", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => Deck_1.Deck, (deck) => deck.cards, {
+        onDelete: "CASCADE",
+    }),
+    __metadata("design:type", Deck_1.Deck)
+], Card.prototype, "deck", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(() => [CardStats_1.CardStats]),
+    (0, typeorm_1.OneToMany)(() => CardStats_1.CardStats, (cardStats) => cardStats.card, {
+        cascade: true,
+    }),
+    __metadata("design:type", Array)
+], Card.prototype, "stats", void 0);
+__decorate([
+    (0, typeorm_1.ManyToMany)(() => Session_1.Session, (session) => session.cards, {
+        onDelete: "CASCADE",
+    }),
+    __metadata("design:type", Array)
+], Card.prototype, "sessions", void 0);
 Card = __decorate([
-    type_graphql_1.ObjectType(),
-    typeorm_1.Entity()
+    (0, type_graphql_1.ObjectType)(),
+    (0, typeorm_1.Entity)()
 ], Card);
 exports.Card = Card;
 //# sourceMappingURL=Card.js.map

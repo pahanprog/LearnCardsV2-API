@@ -1,38 +1,61 @@
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
+  ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { Field, ObjectType } from "type-graphql";
 import { Deck } from "./Deck";
+import { CardStats } from "./CardStats";
+import { Session } from "./Session";
 
 @ObjectType()
 @Entity()
 export class Card extends BaseEntity {
+  //main columns
   @Field()
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Field()
-  @Column()
-  number!: number;
+  @Field(() => String)
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @Field(() => String)
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @Field()
   @Column()
-  parentId: number;
+  order!: number;
 
+  @Field()
+  @Column({ type: "text" })
+  question: string;
+
+  @Field()
+  @Column({ type: "text" })
+  answer: string;
+
+  //relations
   @ManyToOne(() => Deck, (deck) => deck.cards, {
     onDelete: "CASCADE",
   })
-  parent: Deck;
+  deck: Deck;
 
-  @Field()
-  @Column({ type: "text" })
-  question!: string;
+  @Field(() => [CardStats])
+  @OneToMany(() => CardStats, (cardStats) => cardStats.card, {
+    cascade: true,
+  })
+  stats: CardStats[];
 
-  @Field()
-  @Column({ type: "text" })
-  answer!: string;
+  @ManyToMany(() => Session, (session) => session.cards, {
+    onDelete: "CASCADE",
+  })
+  sessions: Session[];
 }
