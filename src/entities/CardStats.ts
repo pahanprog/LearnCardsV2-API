@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -47,7 +48,7 @@ export class CardStats extends BaseEntity {
   //relations
   @ManyToOne(() => Card, (card) => card.stats, { onDelete: "CASCADE" })
   card: Card;
-
+  //
   @ManyToOne(() => User, (user) => user.stats)
   user: User;
 }

@@ -39,14 +39,14 @@ __decorate([
 ], Session.prototype, "finishedCards", void 0);
 __decorate([
     (0, type_graphql_1.Field)(() => Deck_1.Deck),
-    (0, typeorm_1.ManyToOne)(() => Deck_1.Deck, (deck) => deck.sessions, {
+    (0, typeorm_1.ManyToMany)(() => Deck_1.Deck, (deck) => deck.sessions, {
         onDelete: "CASCADE",
         cascade: true,
     }),
     __metadata("design:type", Deck_1.Deck)
 ], Session.prototype, "deck", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => User_1.User, (user) => user.sessions),
+    (0, typeorm_1.ManyToMany)(() => User_1.User, (user) => user.sessions),
     __metadata("design:type", User_1.User)
 ], Session.prototype, "user", void 0);
 __decorate([

@@ -134,7 +134,7 @@ let UserResolver = class UserResolver {
             const link = constants_1.__prod__
                 ? `https://learncardsv2-client.herokuapp.com/change-password/${token}`
                 : `http://localhost:3000/change-password/${token}`;
-            yield (0, sendEmail_1.default)(email, `<div>Мы получили запрос на восстановления пароля вашего профиля в приложении LearnCards, чтобы изменить пароль пройдите по ссылке ниже, если вы не запрашивали смену пароля, то игнорируйте это письмо.<div><a href="${link}">reset passwod</a>`);
+            yield (0, sendEmail_1.default)(email, `<div>Мы получили запрос на восстановления пароля вашего профиля в приложении LearnCards, чтобы изменить пароль пройдите по ссылке ниже, если вы не запрашивали смену пароля, то игнорируйте это письмо.<div><a href="${link}">Сменить пароль</a>`);
             return true;
         });
     }

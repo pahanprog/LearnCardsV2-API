@@ -45,7 +45,8 @@ export class Deck extends BaseEntity {
   cards: Card[];
 
   @Field(() => [Session])
-  @OneToMany(() => Session, (session) => session.deck)
+  @JoinTable()
+  @ManyToMany(() => Session, (session) => session.deck)
   sessions: Session[];
 
   @Field(() => User)

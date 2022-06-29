@@ -98,7 +98,8 @@ export class DeckResolver {
       .leftJoinAndSelect("deck.learners", "learners")
       .leftJoinAndSelect("deck.cards", "cards")
       .leftJoinAndSelect("deck.creator", "creator")
-      .leftJoinAndSelect("cards.stats", "stats", "stats.userId = :userId", {
+      .leftJoinAndSelect("cards.stats", "stats")
+      .leftJoinAndSelect("stats.user", "user", "user.id = :userId", {
         userId: req.user,
       })
       .orderBy("cards.order", "ASC")
@@ -111,6 +112,7 @@ export class DeckResolver {
         })
       )
       .getOne();
+    console.log("DECK ", deck);
     if (deck) {
       for (const l of deck?.learners) {
         console.log("Learner ", l);
@@ -118,23 +120,37 @@ export class DeckResolver {
         const overAll = await getConnection()
           .getRepository(Session)
           .createQueryBuilder("session")
-          .where('"deckId" = :deckId', { deckId })
-          .andWhere('"userId" = :userId', { userId: l.id })
+          .leftJoinAndSelect("session.deck", "deck", "deck.id = :deckId", {
+            deckId,
+          })
+          .leftJoinAndSelect("session.user", "user", "user.id = :userId", {
+            userId: l.id,
+          })
+          .where("user.id IS NOT NULL")
           .getMany();
         console.log("OVER ALL ", overAll);
         let overAllSum = 0;
         overAll.forEach((sess) => {
+          console.log("SESSION ", sess);
           overAllSum = overAllSum + sess.finishedCards;
         });
-        console.log("OVER ALL ", overAll);
+        console.log("OVER ALL SUM", overAllSum);
         for (const c of deck.cards) {
-          const stats = await CardStats.findOne({
-            where: { card: c, user: l },
-          });
+          const stats = await getConnection()
+            .getRepository(CardStats)
+            .createQueryBuilder("stats")
+            .leftJoinAndSelect("stats.card", "card")
+            .leftJoinAndSelect("stats.user", "user")
+            .where("card.id = :cardId", { cardId: c.id })
+            .andWhere("user.id = :userId", { userId: l.id })
+            .getOne();
+          console.log("STATS ", stats);
           if (stats) {
             performanceRatingArray.push(stats.lastPerformanceRating);
           }
         }
+        console.log("performanceRatingArray ", performanceRatingArray);
+        console.log("CARDS LENGHT ", deck.cards.length);
         const percent = parseFloat(
           (
             (performanceRatingArray.reduce((sum, perf) => sum + perf, 0) /

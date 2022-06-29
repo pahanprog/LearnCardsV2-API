@@ -49,7 +49,8 @@ __decorate([
 ], Deck.prototype, "cards", void 0);
 __decorate([
     (0, type_graphql_1.Field)(() => [Session_1.Session]),
-    (0, typeorm_1.OneToMany)(() => Session_1.Session, (session) => session.deck),
+    (0, typeorm_1.JoinTable)(),
+    (0, typeorm_1.ManyToMany)(() => Session_1.Session, (session) => session.deck),
     __metadata("design:type", Array)
 ], Deck.prototype, "sessions", void 0);
 __decorate([

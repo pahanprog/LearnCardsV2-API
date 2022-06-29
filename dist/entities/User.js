@@ -76,7 +76,8 @@ __decorate([
     __metadata("design:type", Array)
 ], User.prototype, "stats", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => Session_1.Session, (session) => session.user),
+    (0, typeorm_1.ManyToMany)(() => Session_1.Session, (session) => session.user),
+    (0, typeorm_1.JoinTable)(),
     __metadata("design:type", Array)
 ], User.prototype, "sessions", void 0);
 __decorate([

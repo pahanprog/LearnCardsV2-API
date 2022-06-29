@@ -36,13 +36,13 @@ export class Session extends BaseEntity {
 
   //relations
   @Field(() => Deck)
-  @ManyToOne(() => Deck, (deck) => deck.sessions, {
+  @ManyToMany(() => Deck, (deck) => deck.sessions, {
     onDelete: "CASCADE",
     cascade: true,
   })
   deck: Deck;
 
-  @ManyToOne(() => User, (user) => user.sessions)
+  @ManyToMany(() => User, (user) => user.sessions)
   user: User;
 
   @Field(() => [Card])

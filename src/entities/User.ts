@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
   ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -61,7 +62,8 @@ export class User extends BaseEntity {
   @OneToMany(() => CardStats, (cardStats) => cardStats.user)
   stats: CardStats[];
 
-  @OneToMany(() => Session, (session) => session.user)
+  @ManyToMany(() => Session, (session) => session.user)
+  @JoinTable()
   sessions: Session[];
 
   @Field(() => UserDeckStats)
