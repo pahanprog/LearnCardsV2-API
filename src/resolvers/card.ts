@@ -286,6 +286,19 @@ export class CardResolver {
         console.log("SECOND FLAG");
         final = noStats.slice(0, 10);
       } else {
+        final = shuffle(cards);
+        final = final.splice(0, 10);
+        if (final.length < 10) {
+          console.log("TO SMALL ", final.length);
+          let flag = true;
+          while (flag) {
+            console.log("ADDING ITEM");
+            final.push(final[Math.floor(Math.random() * final.length)]);
+            if (final.length === 10) {
+              flag = false;
+            }
+          }
+        }
         console.log("WHAT TO DO NOW");
       }
     }

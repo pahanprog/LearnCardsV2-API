@@ -249,8 +249,8 @@ let UserResolver = class UserResolver {
                 learnedCards,
                 createdDecks,
                 studentsInCreatedDecks,
-                overallLearnedPercent,
-                learnedPercent,
+                overallLearnedPercent: overallLearnedPercent ? overallLearnedPercent : 0,
+                learnedPercent: learnedPercent ? learnedPercent : 0,
                 createdDecksArray,
                 learningDecksArray,
             };
