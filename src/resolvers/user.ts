@@ -7,6 +7,7 @@ import {
   ObjectType,
   Query,
   Resolver,
+  UseMiddleware,
 } from "type-graphql";
 import { MyContext } from "../types";
 import argon2 from "argon2";
@@ -18,6 +19,9 @@ import sendEmail from "../utils/sendEmail";
 import { FORGOT_PASSWORD_PREFIX, __prod__ } from "../constants";
 import { promisify } from "util";
 import { get } from "https";
+import { isAuth } from "../middleware/isAuth";
+import { Deck } from "../entities/Deck";
+import { CardStats } from "../entities/CardStats";
 @ObjectType()
 class FieldError {
   @Field()
@@ -25,6 +29,33 @@ class FieldError {
 
   @Field()
   message: string;
+}
+
+@ObjectType()
+class StatsResponse {
+  @Field()
+  overallCards: number;
+
+  @Field()
+  learnedCards: number;
+
+  @Field()
+  createdDecks: number;
+
+  @Field()
+  studentsInCreatedDecks: number;
+
+  @Field()
+  overallLearnedPercent: number;
+
+  @Field()
+  learnedPercent: number;
+
+  @Field(() => [Deck])
+  createdDecksArray: Deck[];
+
+  @Field(() => [Deck])
+  learningDecksArray: Deck[];
 }
 
 @ObjectType()
@@ -144,5 +175,88 @@ export class UserResolver {
     req;
     res;
     return true;
+  }
+
+  @Query(() => StatsResponse, { nullable: true })
+  @UseMiddleware(isAuth)
+  async getStats(@Ctx() { req }: MyContext): Promise<StatsResponse | null> {
+    let overallCards = 0;
+    let learnedCards = 0;
+    let createdDecks = 0;
+    let studentsInCreatedDecks = 0;
+    let overallLearnedPercent = 0;
+    let learnedPercent = 0;
+
+    let createdDecksArray: Deck[] = [];
+
+    let learningDecksArray: Deck[] = [];
+
+    let learnedOverallScore = 0;
+
+    const decks = await getConnection()
+      .getRepository(Deck)
+      .createQueryBuilder("deck")
+      .leftJoinAndSelect("deck.learners", "learners")
+      .leftJoinAndSelect("deck.cards", "cards")
+      .leftJoinAndSelect("deck.creator", "creator")
+      .orderBy("cards.order", "ASC")
+      .where("creator.id = :id", { id: req.user })
+      .orWhere("learners.id = :id", { id: req.user })
+      .getMany();
+
+    const cardStats = await getConnection()
+      .getRepository(CardStats)
+      .createQueryBuilder("stats")
+      .where("stats.userId = :userId", { userId: req.user })
+      .andWhere(`"cardId" IS NOT NULL`)
+      .getMany();
+
+    learnedCards = cardStats.length;
+
+    cardStats.forEach((stats) => {
+      learnedOverallScore += stats.lastPerformanceRating;
+    });
+
+    for (const deck of decks) {
+      overallCards += deck.cards.length;
+      if (deck.creator.id === req.user) {
+        createdDecks += 1;
+        studentsInCreatedDecks += deck.learners.length;
+        createdDecksArray.push(deck);
+      } else {
+        const deckNew = await await getConnection()
+          .getRepository(Deck)
+          .createQueryBuilder("deck")
+          .leftJoinAndSelect("deck.learners", "learners")
+          .leftJoinAndSelect("deck.cards", "cards")
+          .leftJoinAndSelect("deck.creator", "creator")
+          .where("deck.id = :deckId", { deckId: deck.id })
+          .getOne();
+        if (deckNew) {
+          learningDecksArray.push(deckNew);
+        }
+      }
+    }
+
+    console.log("OVERALL SCORE ", learnedOverallScore);
+    console.log("LEARNED CARDS ", learnedCards);
+
+    overallLearnedPercent = parseFloat(
+      ((learnedOverallScore / overallCards) * 100).toFixed(2)
+    );
+    learnedPercent = parseFloat(
+      ((learnedOverallScore / learnedCards) * 100).toFixed(2)
+    );
+
+    return {
+      overallCards,
+      learnedCards,
+      createdDecks,
+      studentsInCreatedDecks,
+      overallLearnedPercent,
+      learnedPercent,
+      createdDecksArray,
+      learningDecksArray,
+    };
   }
 }

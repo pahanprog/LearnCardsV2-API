@@ -28,10 +28,14 @@ exports.UserResolver = void 0;
 const User_1 = require("../entities/User");
 const type_graphql_1 = require("type-graphql");
 const argon2_1 = __importDefault(require("argon2"));
+const typeorm_1 = require("typeorm");
 const uuid_1 = require("uuid");
 const sendEmail_1 = __importDefault(require("../utils/sendEmail"));
 const constants_1 = require("../constants");
 const util_1 = require("util");
+const isAuth_1 = require("../middleware/isAuth");
+const Deck_1 = require("../entities/Deck");
+const CardStats_1 = require("../entities/CardStats");
 let FieldError = class FieldError {
 };
 __decorate([
@@ -45,6 +49,43 @@ __decorate([
 FieldError = __decorate([
     (0, type_graphql_1.ObjectType)()
 ], FieldError);
+let StatsResponse = class StatsResponse {
+};
+__decorate([
+    (0, type_graphql_1.Field)(),
+    __metadata("design:type", Number)
+], StatsResponse.prototype, "overallCards", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(),
+    __metadata("design:type", Number)
+], StatsResponse.prototype, "learnedCards", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(),
+    __metadata("design:type", Number)
+], StatsResponse.prototype, "createdDecks", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(),
+    __metadata("design:type", Number)
+], StatsResponse.prototype, "studentsInCreatedDecks", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(),
+    __metadata("design:type", Number)
+], StatsResponse.prototype, "overallLearnedPercent", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(),
+    __metadata("design:type", Number)
+], StatsResponse.prototype, "learnedPercent", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(() => [Deck_1.Deck]),
+    __metadata("design:type", Array)
+], StatsResponse.prototype, "createdDecksArray", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(() => [Deck_1.Deck]),
+    __metadata("design:type", Array)
+], StatsResponse.prototype, "learningDecksArray", void 0);
+StatsResponse = __decorate([
+    (0, type_graphql_1.ObjectType)()
+], StatsResponse);
 let UserResponse = class UserResponse {
 };
 __decorate([
@@ -147,6 +188,74 @@ let UserResolver = class UserResolver {
             return true;
         });
     }
+    getStats({ req }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let overallCards = 0;
+            let learnedCards = 0;
+            let createdDecks = 0;
+            let studentsInCreatedDecks = 0;
+            let overallLearnedPercent = 0;
+            let learnedPercent = 0;
+            let createdDecksArray = [];
+            let learningDecksArray = [];
+            let learnedOverallScore = 0;
+            const decks = yield (0, typeorm_1.getConnection)()
+                .getRepository(Deck_1.Deck)
+                .createQueryBuilder("deck")
+                .leftJoinAndSelect("deck.learners", "learners")
+                .leftJoinAndSelect("deck.cards", "cards")
+                .leftJoinAndSelect("deck.creator", "creator")
+                .orderBy("cards.order", "ASC")
+                .where("creator.id = :id", { id: req.user })
+                .orWhere("learners.id = :id", { id: req.user })
+                .getMany();
+            const cardStats = yield (0, typeorm_1.getConnection)()
+                .getRepository(CardStats_1.CardStats)
+                .createQueryBuilder("stats")
+                .where("stats.userId = :userId", { userId: req.user })
+                .andWhere(`"cardId" IS NOT NULL`)
+                .getMany();
+            learnedCards = cardStats.length;
+            cardStats.forEach((stats) => {
+                learnedOverallScore += stats.lastPerformanceRating;
+            });
+            for (const deck of decks) {
+                overallCards += deck.cards.length;
+                if (deck.creator.id === req.user) {
+                    createdDecks += 1;
+                    studentsInCreatedDecks += deck.learners.length;
+                    createdDecksArray.push(deck);
+                }
+                else {
+                    const deckNew = yield yield (0, typeorm_1.getConnection)()
+                        .getRepository(Deck_1.Deck)
+                        .createQueryBuilder("deck")
+                        .leftJoinAndSelect("deck.learners", "learners")
+                        .leftJoinAndSelect("deck.cards", "cards")
+                        .leftJoinAndSelect("deck.creator", "creator")
+                        .where("deck.id = :deckId", { deckId: deck.id })
+                        .getOne();
+                    if (deckNew) {
+                        learningDecksArray.push(deckNew);
+                    }
+                }
+            }
+            console.log("OVERALL SCORE ", learnedOverallScore);
+            console.log("LEARNED CARDS ", learnedCards);
+            overallLearnedPercent = parseFloat(((learnedOverallScore / overallCards) * 100).toFixed(2));
+            learnedPercent = parseFloat(((learnedOverallScore / learnedCards) * 100).toFixed(2));
+            return {
+                overallCards,
+                learnedCards,
+                createdDecks,
+                studentsInCreatedDecks,
+                overallLearnedPercent,
+                learnedPercent,
+                createdDecksArray,
+                learningDecksArray,
+            };
+        });
+    }
 };
 __decorate([
     (0, type_graphql_1.Query)(() => User_1.User, { nullable: true }),
@@ -179,6 +288,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "logout", null);
+__decorate([
+    (0, type_graphql_1.Query)(() => StatsResponse, { nullable: true }),
+    (0, type_graphql_1.UseMiddleware)(isAuth_1.isAuth),
+    __param(0, (0, type_graphql_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "getStats", null);
 UserResolver = __decorate([
     (0, type_graphql_1.Resolver)()
 ], UserResolver);

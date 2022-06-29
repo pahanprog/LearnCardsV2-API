@@ -115,7 +115,6 @@ let DeckResolver = class DeckResolver {
         });
     }
     deck(deckId, { req }) {
-        var e_1, _a, e_2, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const deck = yield (0, typeorm_1.getConnection)()
                 .getRepository(Deck_1.Deck)
@@ -135,57 +134,40 @@ let DeckResolver = class DeckResolver {
             }))
                 .getOne();
             if (deck) {
-                try {
-                    for (var _c = __asyncValues(deck === null || deck === void 0 ? void 0 : deck.learners), _d; _d = yield _c.next(), !_d.done;) {
-                        const l = _d.value;
-                        console.log("Learner ", l);
-                        let performanceRatingArray = [];
-                        const overAll = yield (0, typeorm_1.getConnection)()
-                            .getRepository(Session_1.Session)
-                            .createQueryBuilder("session")
-                            .where('"deckId" = :deckId', { deckId })
-                            .andWhere('"userId" = :userId', { userId: l.id })
-                            .getMany();
-                        let overAllSum = 0;
-                        overAll.forEach((sess) => {
-                            overAllSum = overAllSum + sess.finishedCards;
+                for (const l of deck === null || deck === void 0 ? void 0 : deck.learners) {
+                    console.log("Learner ", l);
+                    let performanceRatingArray = [];
+                    const overAll = yield (0, typeorm_1.getConnection)()
+                        .getRepository(Session_1.Session)
+                        .createQueryBuilder("session")
+                        .where('"deckId" = :deckId', { deckId })
+                        .andWhere('"userId" = :userId', { userId: l.id })
+                        .getMany();
+                    console.log("OVER ALL ", overAll);
+                    let overAllSum = 0;
+                    overAll.forEach((sess) => {
+                        overAllSum = overAllSum + sess.finishedCards;
+                    });
+                    console.log("OVER ALL ", overAll);
+                    for (const c of deck.cards) {
+                        const stats = yield CardStats_1.CardStats.findOne({
+                            where: { card: c, user: l },
                         });
-                        try {
-                            for (var _e = (e_2 = void 0, __asyncValues(deck.cards)), _f; _f = yield _e.next(), !_f.done;) {
-                                const c = _f.value;
-                                const stats = yield CardStats_1.CardStats.findOne({
-                                    where: { card: c, user: l },
-                                });
-                                if (stats) {
-                                    performanceRatingArray.push(stats.lastPerformanceRating);
-                                }
-                            }
+                        if (stats) {
+                            performanceRatingArray.push(stats.lastPerformanceRating);
                         }
-                        catch (e_2_1) { e_2 = { error: e_2_1 }; }
-                        finally {
-                            try {
-                                if (_f && !_f.done && (_b = _e.return)) yield _b.call(_e);
-                            }
-                            finally { if (e_2) throw e_2.error; }
-                        }
-                        const percent = parseFloat(((performanceRatingArray.reduce((sum, perf) => sum + perf, 0) /
-                            deck.cards.length) *
-                            100).toFixed(2));
-                        l.deckStats = {
-                            overall: overAllSum,
-                            percent: percent ? percent : 0,
-                            unique: performanceRatingArray.length,
-                        };
                     }
-                }
-                catch (e_1_1) { e_1 = { error: e_1_1 }; }
-                finally {
-                    try {
-                        if (_d && !_d.done && (_a = _c.return)) yield _a.call(_c);
-                    }
-                    finally { if (e_1) throw e_1.error; }
+                    const percent = parseFloat(((performanceRatingArray.reduce((sum, perf) => sum + perf, 0) /
+                        deck.cards.length) *
+                        100).toFixed(2));
+                    l.deckStats = {
+                        overall: overAllSum,
+                        percent: percent ? percent : 0,
+                        unique: performanceRatingArray.length,
+                    };
                 }
             }
+            console.log("RETURNING ");
             return deck;
         });
     }
@@ -222,7 +204,7 @@ let DeckResolver = class DeckResolver {
     }
     updateDeckCards(deckId, update, del, { req }) {
         var update_1, update_1_1, del_1, del_1_1;
-        var e_3, _a, e_4, _b;
+        var e_1, _a, e_2, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const check = yield (0, typeorm_1.getConnection)().manager.findOne(Deck_1.Deck, {
                 where: { id: deckId, creator: req.user },
@@ -263,12 +245,12 @@ let DeckResolver = class DeckResolver {
                     }
                 }
             }
-            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
             finally {
                 try {
                     if (update_1_1 && !update_1_1.done && (_a = update_1.return)) yield _a.call(update_1);
                 }
-                finally { if (e_3) throw e_3.error; }
+                finally { if (e_1) throw e_1.error; }
             }
             if (del) {
                 try {
@@ -277,12 +259,12 @@ let DeckResolver = class DeckResolver {
                         yield (0, typeorm_1.getConnection)().manager.delete(Card_1.Card, { id: value.id });
                     }
                 }
-                catch (e_4_1) { e_4 = { error: e_4_1 }; }
+                catch (e_2_1) { e_2 = { error: e_2_1 }; }
                 finally {
                     try {
                         if (del_1_1 && !del_1_1.done && (_b = del_1.return)) yield _b.call(del_1);
                     }
-                    finally { if (e_4) throw e_4.error; }
+                    finally { if (e_2) throw e_2.error; }
                 }
             }
             const deck = yield (0, typeorm_1.getConnection)()

@@ -112,7 +112,7 @@ export class DeckResolver {
       )
       .getOne();
     if (deck) {
-      for await (const l of deck?.learners) {
+      for (const l of deck?.learners) {
         console.log("Learner ", l);
         let performanceRatingArray = [];
         const overAll = await getConnection()
@@ -121,11 +121,13 @@ export class DeckResolver {
           .where('"deckId" = :deckId', { deckId })
           .andWhere('"userId" = :userId', { userId: l.id })
           .getMany();
+        console.log("OVER ALL ", overAll);
         let overAllSum = 0;
         overAll.forEach((sess) => {
           overAllSum = overAllSum + sess.finishedCards;
         });
-        for await (const c of deck.cards) {
+        console.log("OVER ALL ", overAll);
+        for (const c of deck.cards) {
           const stats = await CardStats.findOne({
             where: { card: c, user: l },
           });
@@ -147,6 +149,7 @@ export class DeckResolver {
         };
       }
     }
+    console.log("RETURNING ");
     return deck;
   }
 
